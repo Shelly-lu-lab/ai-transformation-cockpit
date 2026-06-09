@@ -87,7 +87,7 @@ export default function OverviewPage() {
   }, [projects.length])
 
   async function handleSend(message: string) {
-    setMessages([{ role: 'user', content: message }])
+    setMessages(prev => [...prev, { role: 'user', content: message }])
     setChatLoading(true)
     try {
       const res = await fetch('/api/chat', {
@@ -96,15 +96,9 @@ export default function OverviewPage() {
         body: JSON.stringify({ message, page: 'overview' }),
       })
       const data = await res.json()
-      setMessages([
-        { role: 'user', content: message },
-        { role: 'assistant', content: data.answer || '暂无分析结果' },
-      ])
+      setMessages(prev => [...prev, { role: 'assistant', content: data.answer || '暂无分析结果' }])
     } catch {
-      setMessages([
-        { role: 'user', content: message },
-        { role: 'assistant', content: '分析请求失败，请重试。' },
-      ])
+      setMessages(prev => [...prev, { role: 'assistant', content: '分析请求失败，请重试。' }])
     }
     setChatLoading(false)
   }
@@ -247,6 +241,37 @@ export default function OverviewPage() {
           )}
         </div>
         <InsightPanel insights={aiInsights || fallbackInsights} isLoading={isLoading || aiInsightsLoading} />
+      </section>
+
+      <section className="grid grid-cols-4 gap-3">
+        <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-3">
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
+            <span className="text-xs font-medium text-green-300">AI 放大区</span>
+          </div>
+          <p className="mt-1 text-[11px] leading-4 text-zinc-400">AI 投入高于中位数，且人效高于中位数。说明 AI 投入正在有效放大业务产出。</p>
+        </div>
+        <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3">
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
+            <span className="text-xs font-medium text-red-300">待优化区</span>
+          </div>
+          <p className="mt-1 text-[11px] leading-4 text-zinc-400">AI 投入高于中位数，但人效低于中位数。AI 投入尚未转化为产出提升，需诊断原因。</p>
+        </div>
+        <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3">
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />
+            <span className="text-xs font-medium text-blue-300">高潜力区</span>
+          </div>
+          <p className="mt-1 text-[11px] leading-4 text-zinc-400">人效高于中位数，但 AI 投入低于中位数。业务基础好，加码 AI 可能获得高回报。</p>
+        </div>
+        <div className="rounded-lg border border-zinc-600/20 bg-zinc-800/30 p-3">
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-zinc-500" />
+            <span className="text-xs font-medium text-zinc-400">基础区</span>
+          </div>
+          <p className="mt-1 text-[11px] leading-4 text-zinc-400">AI 投入和人效均低于中位数。需先诊断业务基本面，再考虑 AI 投入策略。</p>
+        </div>
       </section>
 
       <ChatPanel

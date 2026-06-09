@@ -85,8 +85,8 @@ export default function Home() {
         <div className="mx-auto mb-6 grid h-12 w-12 place-items-center rounded-lg border border-blue-500/40 bg-blue-500/10 text-sm font-bold text-blue-300">
           ROI
         </div>
-        <h1 className="text-5xl font-semibold tracking-tight text-zinc-50">人效作战室</h1>
-        <p className="mt-4 text-lg text-zinc-400">AI 时代的人力资本 ROI 决策引擎</p>
+        <h1 className="text-5xl font-semibold tracking-tight text-zinc-50">AI 人效决策引擎</h1>
+        <p className="mt-4 text-lg text-zinc-400">用 AI 算清 AI 转型这笔账：投入在哪里撬动了人效，在哪里需要调整</p>
 
         <div className="mt-10 rounded-lg border border-dashed border-zinc-700 bg-zinc-900/70 p-8">
           <div className="text-sm font-medium text-zinc-200">上传三类数据，AI 自动生成作战室</div>

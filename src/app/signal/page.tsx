@@ -81,7 +81,7 @@ export default function SignalPage() {
   }, [selectedProjectId])
 
   async function handleSend(message: string) {
-    setMessages([{ role: 'user', content: message }])
+    setMessages(prev => [...prev, { role: 'user', content: message }])
     setChatLoading(true)
     try {
       const res = await fetch('/api/chat', {
@@ -90,15 +90,9 @@ export default function SignalPage() {
         body: JSON.stringify({ message, page: 'signal', selected_project_id: selectedProjectId }),
       })
       const data = await res.json()
-      setMessages([
-        { role: 'user', content: message },
-        { role: 'assistant', content: data.answer || '暂无分析结果' },
-      ])
+      setMessages(prev => [...prev, { role: 'assistant', content: data.answer || '暂无分析结果' }])
     } catch {
-      setMessages([
-        { role: 'user', content: message },
-        { role: 'assistant', content: '分析请求失败，请重试。' },
-      ])
+      setMessages(prev => [...prev, { role: 'assistant', content: '分析请求失败，请重试。' }])
     }
     setChatLoading(false)
   }

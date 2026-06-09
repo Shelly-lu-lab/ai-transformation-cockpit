@@ -4,9 +4,9 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const links = [
-  { href: '/overview', label: '全景' },
-  { href: '/signal', label: '价值信号' },
-  { href: '/decision', label: '推演台' },
+  { href: '/overview', label: '人效总览' },
+  { href: '/signal', label: 'AI 投入诊断' },
+  { href: '/decision', label: '决策推演' },
 ]
 
 export function Nav() {
@@ -17,11 +17,11 @@ export function Nav() {
       <div className="mx-auto flex h-full max-w-[1440px] items-center justify-between px-6">
         <Link href="/" className="flex items-center gap-3">
           <span className="grid h-7 w-7 place-items-center rounded-md border border-blue-500/40 bg-blue-500/10 text-sm font-bold text-blue-300">
-            ROI
+            AI
           </span>
           <div>
-            <div className="text-sm font-semibold tracking-wide text-zinc-50">人效作战室</div>
-            <div className="text-[11px] text-zinc-500">Human Capital ROI Command</div>
+            <div className="text-sm font-semibold tracking-wide text-zinc-50">AI 人效决策引擎</div>
+            <div className="text-[11px] text-zinc-500">AI-Powered Human Capital ROI Engine</div>
           </div>
         </Link>
 

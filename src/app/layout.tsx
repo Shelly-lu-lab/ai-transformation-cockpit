@@ -4,8 +4,8 @@ import { DataProvider } from '@/lib/DataProvider'
 import { Nav } from '@/components/Nav'
 
 export const metadata: Metadata = {
-  title: '人效作战室',
-  description: 'AI 时代的人力资本 ROI 决策引擎',
+  title: 'AI 人效决策引擎',
+  description: '用 AI 算清 AI 转型这笔账：投入在哪里撬动了人效，在哪里需要调整',
 }
 
 export default function RootLayout({

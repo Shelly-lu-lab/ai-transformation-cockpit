@@ -28,7 +28,7 @@ export function ChatPanel({ quickButtons, onSend, messages, isLoading }: ChatPan
   return (
     <section className="sticky bottom-4 z-40 rounded-lg border border-zinc-700/50 bg-zinc-900 p-3 shadow-2xl shadow-black/30">
       {messages.length > 0 ? (
-        <div className="mb-3 max-h-36 space-y-2 overflow-auto rounded-md border border-zinc-800 bg-zinc-950/60 p-3">
+        <div className="mb-3 max-h-64 space-y-2 overflow-auto rounded-md border border-zinc-800 bg-zinc-950/60 p-3">
           {messages.map((message, index) => (
             <div
               key={`${message.role}-${index}`}
