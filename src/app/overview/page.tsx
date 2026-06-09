@@ -126,6 +126,8 @@ export default function OverviewPage() {
     },
     xAxis: {
       name: '总投入',
+      type: 'log',
+      min: 100000,
       axisLine: { lineStyle: { color: '#3f3f46' } },
       splitLine: { lineStyle: { color: '#27272a' } },
       axisLabel: { color: '#a1a1aa', formatter: (value: number) => formatWan(value) },
@@ -133,6 +135,8 @@ export default function OverviewPage() {
     },
     yAxis: {
       name: '利润',
+      type: 'log',
+      min: 50000,
       axisLine: { lineStyle: { color: '#3f3f46' } },
       splitLine: { lineStyle: { color: '#27272a' } },
       axisLabel: { color: '#a1a1aa', formatter: (value: number) => formatWan(value) },

@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     const body: ChatRequest = await request.json()
     const { message, page, selected_project_id } = body
 
-    const apiKey = process.env.ANTHROPIC_API_KEY
+    const apiKey = process.env.ANTHROPIC_AUTH_TOKEN || process.env.ANTHROPIC_API_KEY
     if (!apiKey) {
       return NextResponse.json(
         { answer: '系统配置异常：未设置 API Key', highlights: [] } as ChatResponse,
@@ -53,7 +53,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const client = new Anthropic({ apiKey })
+    const clientOptions: { apiKey: string; baseURL?: string } = { apiKey }
+    if (process.env.ANTHROPIC_BASE_URL) {
+      clientOptions.baseURL = process.env.ANTHROPIC_BASE_URL
+    }
+    const client = new Anthropic(clientOptions)
     const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6-20250514'
 
     const projects = getProjects()
@@ -107,10 +111,19 @@ export async function POST(request: NextRequest) {
 
     let parsed: ChatResponse
     try {
-      const jsonStr = textBlock.text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      // Strip markdown code fences and any leading/trailing whitespace
+      let jsonStr = textBlock.text.trim()
+      // Remove ```json ... ``` wrapping
+      jsonStr = jsonStr.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/g, '').trim()
+      // Try to extract JSON object if there's surrounding text
+      const jsonMatch = jsonStr.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        jsonStr = jsonMatch[0]
+      }
       parsed = JSON.parse(jsonStr)
     } catch {
-      parsed = { answer: textBlock.text, highlights: [] }
+      // If JSON parsing fails, wrap the raw text as answer
+      parsed = { answer: textBlock.text.replace(/```json\n?|\n?```/g, '').trim(), highlights: [] }
     }
 
     return NextResponse.json(parsed)
