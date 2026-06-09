@@ -126,6 +126,19 @@ export async function POST(request: NextRequest) {
       parsed = { answer: textBlock.text.replace(/```json\n?|\n?```/g, '').trim(), highlights: [] }
     }
 
+    // Normalize response to prevent frontend crashes
+    if (!parsed.answer) parsed.answer = ''
+    if (!Array.isArray(parsed.highlights)) parsed.highlights = []
+    if (parsed.decision_card) {
+      const card = parsed.decision_card
+      if (!Array.isArray(card.actions)) card.actions = []
+      if (!Array.isArray(card.talent_guards)) card.talent_guards = []
+      if (!Array.isArray(card.evidence)) card.evidence = []
+      if (!card.title) card.title = '决策方案'
+      if (!card.expected_saving) card.expected_saving = '--'
+      if (!card.productivity_delta) card.productivity_delta = '--'
+    }
+
     return NextResponse.json(parsed)
   } catch (error) {
     console.error('Chat API error:', error)

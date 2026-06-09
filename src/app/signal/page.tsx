@@ -227,7 +227,7 @@ export default function SignalPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1440px] space-y-4 px-6 py-5">
+    <div className="mx-auto max-w-[1440px] space-y-4 px-6 pb-44 pt-5">
       <header className="flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-50">AI 价值信号</h1>

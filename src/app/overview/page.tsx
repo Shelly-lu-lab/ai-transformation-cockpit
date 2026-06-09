@@ -60,17 +60,27 @@ export default function OverviewPage() {
     if (projects.length > 0 && !diagnosisRan.current) {
       diagnosisRan.current = true
       setAiInsightsLoading(true)
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 8000)
       fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: '', page: 'overview_auto_diagnosis' }),
+        signal: controller.signal,
       })
         .then(res => res.json())
         .then(data => {
-          setAiInsights(data.answer || null)
+          clearTimeout(timeout)
+          const answer = data.answer || ''
+          if (answer.includes('系统配置异常') || answer.includes('分析异常') || answer.length < 20) {
+            setAiInsights(null)
+          } else {
+            setAiInsights(answer)
+          }
           setAiInsightsLoading(false)
         })
         .catch(() => {
+          clearTimeout(timeout)
           setAiInsightsLoading(false)
         })
     }
@@ -127,7 +137,7 @@ export default function OverviewPage() {
     xAxis: {
       name: '总投入',
       type: 'log',
-      min: 100000,
+      min: Math.max(1, Math.min(...projects.map(p => p.labor_cost + p.ai_cost)) * 0.7),
       axisLine: { lineStyle: { color: '#3f3f46' } },
       splitLine: { lineStyle: { color: '#27272a' } },
       axisLabel: { color: '#a1a1aa', formatter: (value: number) => formatWan(value) },
@@ -136,7 +146,7 @@ export default function OverviewPage() {
     yAxis: {
       name: '利润',
       type: 'log',
-      min: 50000,
+      min: Math.max(1, Math.min(...projects.map(p => p.profit)) * 0.7),
       axisLine: { lineStyle: { color: '#3f3f46' } },
       splitLine: { lineStyle: { color: '#27272a' } },
       axisLabel: { color: '#a1a1aa', formatter: (value: number) => formatWan(value) },
@@ -171,9 +181,10 @@ export default function OverviewPage() {
           ? {
               symbol: ['none', 'none'],
               lineStyle: { color: '#52525b', type: 'dashed' },
+              label: { show: true, position: 'end', formatter: '平均人效线', color: '#71717a', fontSize: 10 },
               data: [
                 [
-                  { coord: [0, 0] },
+                  { coord: [Math.max(1, Math.min(...projects.map(p => p.labor_cost + p.ai_cost)) * 0.8), Math.max(1, Math.min(...projects.map(p => p.labor_cost + p.ai_cost)) * 0.8 * companySummary.avg_productivity)] },
                   {
                     coord: [
                       Math.max(...projects.map((project) => project.labor_cost + project.ai_cost), 1),
@@ -193,7 +204,7 @@ export default function OverviewPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1440px] space-y-4 px-6 py-5">
+    <div className="mx-auto max-w-[1440px] space-y-4 px-6 pb-44 pt-5">
       <header className="flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-50">人效全景</h1>
