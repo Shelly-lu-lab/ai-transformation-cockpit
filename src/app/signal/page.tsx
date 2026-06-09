@@ -41,13 +41,31 @@ function topEntries(record: Record<string, number>, limit = 3) {
 }
 
 function buildProjectInsight(project: ProjectWithMetrics) {
-  const topModel = topEntries(project.ai_model_mix, 1)[0]
-  const topRole = topEntries(project.role_distribution, 1)[0]
-  const career = project.engagement_dimensions?.career_development
-  const modelText = topModel ? `${topModel[0]} 占 AI 成本 ${formatRatio(topModel[1])}` : '模型结构暂无明显集中项'
-  const roleText = topRole ? `团队以${topRole[0]}为主，共 ${topRole[1]} 人` : '岗位结构暂无数据'
-  const careerText = career ? `职业发展得分 ${career.toFixed(1)}` : '职业发展维度缺失'
-  return `• ${modelText}，需要和岗位结构联动判断是否匹配。\n• ${roleText}，AI 覆盖率 ${formatPercent(project.ai_penetration)}，月均活跃 ${project.avg_active_days.toFixed(1)} 天。\n• ${careerText}，近期离职 ${project.recent_turnover.total_exits} 人，可作为推演约束。`
+  const lines: string[] = []
+  const perCapitaAi = project.ai_cost / Math.max(project.headcount, 1)
+
+  // AI 投入与人效的核心判断
+  if (project.quadrant === 'underperforming') {
+    lines.push(`**人效信号：** 该项目 AI 强度 ${formatRatio(project.ai_intensity)}（高于中位数），但人效仅 ${formatProductivity(project.productivity)}（低于中位数）。AI 投入尚未有效转化为产出，需诊断原因。`)
+  } else if (project.quadrant === 'high_potential') {
+    lines.push(`**人效信号：** 该项目人效 ${formatProductivity(project.productivity)} 表现优秀，但 AI 渗透较低（强度 ${formatRatio(project.ai_intensity)}）。加码 AI 投入预期可进一步放大产出。`)
+  } else if (project.quadrant === 'amplifier') {
+    lines.push(`**人效信号：** AI 投入与人效正相关——AI 强度 ${formatRatio(project.ai_intensity)}，人效 ${formatProductivity(project.productivity)}，属于 AI 放大区标杆。`)
+  } else {
+    lines.push(`**人效信号：** AI 投入和人效均偏低，建议先诊断业务基本面后再决定 AI 投入策略。`)
+  }
+
+  // AI 使用深度
+  lines.push(`**AI 使用深度：** 人均 AI 成本 ${formatWan(perCapitaAi)}/月，覆盖率 ${formatPercent(project.ai_penetration)}，月均活跃 ${project.avg_active_days.toFixed(1)} 天。Power 用户 ${project.power_user_profile.count} 人，占比 ${formatPercent(project.power_user_ratio)}。`)
+
+  // 人才风险
+  if (project.recent_turnover.power_user_exits > 0) {
+    lines.push(`**人才风险：** 近期有 ${project.recent_turnover.power_user_exits} 名 Power 用户流失，AI 经验正在外流。需关注保留策略。`)
+  } else if (project.recent_turnover.total_exits > 3) {
+    lines.push(`**人才流动：** 近期离职 ${project.recent_turnover.total_exits} 人（被动 ${project.recent_turnover.involuntary_exits} 人），需监控是否影响产能。`)
+  }
+
+  return lines.join('\n\n')
 }
 
 export default function SignalPage() {
@@ -115,6 +133,9 @@ export default function SignalPage() {
     },
     xAxis: {
       name: 'AI强度',
+      type: 'log',
+      min: 0.005,
+      max: Math.min(5, Math.max(...projects.map(p => p.ai_intensity)) * 1.2),
       axisLine: { lineStyle: { color: '#3f3f46' } },
       splitLine: { lineStyle: { color: '#27272a' } },
       axisLabel: { color: '#a1a1aa', formatter: (value: number) => formatRatio(value) },
@@ -283,13 +304,22 @@ export default function SignalPage() {
                 <h3 className="text-sm font-semibold text-zinc-100">项目画像</h3>
                 <div className="mt-4 grid grid-cols-4 gap-4 text-sm">
                   <ProfileBlock title="团队结构" rows={topEntries(selectedProject.role_distribution, 4).map(([k, v]) => `${k} ${v}人`)} />
-                  <ProfileBlock title="AI模型" rows={topEntries(selectedProject.ai_model_mix, 4).map(([k, v]) => `${k} ${formatRatio(v)}`)} />
                   <ProfileBlock
-                    title="流动信号"
+                    title="AI 使用概况"
+                    rows={[
+                      `月 AI 总成本 ${formatWan(selectedProject.ai_cost)}`,
+                      `人均 AI 成本 ${formatWan(selectedProject.ai_cost / Math.max(selectedProject.headcount, 1))}`,
+                      `覆盖率 ${formatPercent(selectedProject.ai_penetration)}`,
+                      `重度用户(Power) ${formatPercent(selectedProject.power_user_ratio)}`,
+                    ]}
+                  />
+                  <ProfileBlock
+                    title="流动与风险"
                     rows={[
                       `近期离职 ${selectedProject.recent_turnover.total_exits}人`,
-                      `主动 ${selectedProject.recent_turnover.voluntary_exits}人`,
-                      `被动 ${selectedProject.recent_turnover.involuntary_exits}人`,
+                      `其中被动 ${selectedProject.recent_turnover.involuntary_exits}人`,
+                      `Power用户流失 ${selectedProject.recent_turnover.power_user_exits}人`,
+                      `高风险人才 ${riskSummary.high_risk_count}人`,
                     ]}
                   />
                   <ProfileBlock
@@ -300,6 +330,12 @@ export default function SignalPage() {
                       `留任意愿 ${selectedProject.engagement_dimensions?.stay_intention ?? '--'}`,
                     ]}
                   />
+                </div>
+                <div className="mt-3 rounded-md bg-zinc-800/50 px-3 py-2 text-[11px] text-zinc-500">
+                  <span className="text-zinc-400">术语说明：</span>
+                  Power 用户 = 月 AI 成本 ≥ ¥7,000 且活跃 ≥ 20 天的深度使用者 ·
+                  高风险人才 = Power 用户且薪酬竞争力 (CR) &lt; 0.9 ·
+                  AI 强度 = AI 成本 ÷ 人力成本
                 </div>
               </div>
             </>

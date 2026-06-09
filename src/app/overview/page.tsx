@@ -31,15 +31,19 @@ type ChartPoint = [number, number, number, string, string, number, string]
 function buildOverviewInsights(projects: ProjectWithMetrics[]) {
   if (projects.length === 0) return null
   const byProductivity = [...projects].sort((a, b) => b.productivity - a.productivity)
-  const byAiCost = [...projects].sort((a, b) => b.ai_cost - a.ai_cost)
   const highPotential = projects.filter((project) => project.quadrant === 'high_potential')
   const underperforming = projects.filter((project) => project.quadrant === 'underperforming')
+  const amplifier = projects.filter((project) => project.quadrant === 'amplifier')
   const underAiCost = underperforming.reduce((sum, project) => sum + project.ai_cost, 0)
 
   return [
-    `• 人效最高的是 ${byProductivity[0].name}，当前人效 ${formatProductivity(byProductivity[0].productivity)}，高于组合平均水平。`,
-    `• ${highPotential.length} 个项目位于高潜力区，说明已有利润基础但 AI 强度仍低，适合优先验证加码。`,
-    `• 待优化区累计 AI 投入 ${formatWan(underAiCost)}，其中 ${byAiCost[0].name} 是 AI 成本最高的项目，需要核查模型结构与岗位匹配。`,
+    `**人效冠军：** ${byProductivity[0].name}，人效 ${formatProductivity(byProductivity[0].productivity)}，以 ${byProductivity[0].headcount} 人团队创造 ${formatWan(byProductivity[0].profit)} 利润。`,
+    '',
+    `**高潜力机会：** ${highPotential.length} 个项目人效高但 AI 渗透低——加码 AI 投入可能获得高回报。`,
+    '',
+    `**待优化预警：** ${underperforming.length} 个项目 AI 投入高但人效未达预期，累计 AI 投入 ${formatWan(underAiCost)}。`,
+    '',
+    `**AI 放大验证：** ${amplifier.length} 个项目处于放大区，AI 正在有效驱动人效提升。`,
   ].join('\n')
 }
 
