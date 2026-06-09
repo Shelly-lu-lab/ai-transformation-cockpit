@@ -37,11 +37,45 @@ export default function Home() {
         <div className="mt-10 rounded-lg border border-dashed border-zinc-700 bg-zinc-900/70 p-10">
           <div className="text-sm font-medium text-zinc-200">上传三类数据，AI 自动生成作战室</div>
           <div className="mt-6 grid grid-cols-3 gap-3 text-sm text-zinc-400">
-            <div className="rounded-md border border-zinc-800 bg-zinc-950 p-4">业务产出</div>
-            <div className="rounded-md border border-zinc-800 bg-zinc-950 p-4">人力成本</div>
-            <div className="rounded-md border border-zinc-800 bg-zinc-950 p-4">AI 使用</div>
+            <button
+              type="button"
+              onClick={() => alert('Demo 模式请使用下方"示例数据"按钮体验完整功能')}
+              className="group cursor-pointer rounded-md border border-zinc-800 bg-zinc-950 p-4 transition-colors hover:border-blue-500/50 hover:bg-zinc-900"
+            >
+              <div className="mx-auto mb-2 text-xl text-zinc-600 group-hover:text-blue-400">📊</div>
+              <div>业务产出</div>
+              <div className="mt-1 text-[10px] text-zinc-600">收入/利润数据</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => alert('Demo 模式请使用下方"示例数据"按钮体验完整功能')}
+              className="group cursor-pointer rounded-md border border-zinc-800 bg-zinc-950 p-4 transition-colors hover:border-blue-500/50 hover:bg-zinc-900"
+            >
+              <div className="mx-auto mb-2 text-xl text-zinc-600 group-hover:text-blue-400">💰</div>
+              <div>人力成本</div>
+              <div className="mt-1 text-[10px] text-zinc-600">薪酬/编制数据</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => alert('Demo 模式请使用下方"示例数据"按钮体验完整功能')}
+              className="group cursor-pointer rounded-md border border-zinc-800 bg-zinc-950 p-4 transition-colors hover:border-blue-500/50 hover:bg-zinc-900"
+            >
+              <div className="mx-auto mb-2 text-xl text-zinc-600 group-hover:text-blue-400">🤖</div>
+              <div>AI 使用</div>
+              <div className="mt-1 text-[10px] text-zinc-600">AI工具使用日志</div>
+            </button>
           </div>
-          <p className="mt-4 text-xs text-zinc-600">Demo 模式仅展示数据归集流程，请使用示例数据体验。</p>
+          <div className="mt-4 flex items-center justify-center gap-4">
+            <p className="text-xs text-zinc-600">Demo 模式仅展示数据归集流程</p>
+            <span className="text-zinc-700">|</span>
+            <button
+              type="button"
+              onClick={() => alert('数据模板下载功能将在正式版中提供。\n\n模板包含三份 Excel：\n1. 业务产出（项目×月度收入/利润）\n2. 人力成本（部门×薪酬/编制）\n3. AI使用日志（员工×平台×成本）')}
+              className="text-xs text-blue-400 hover:text-blue-300 hover:underline"
+            >
+              📥 下载数据模板
+            </button>
+          </div>
         </div>
 
         <button

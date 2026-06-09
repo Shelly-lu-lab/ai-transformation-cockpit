@@ -1,5 +1,7 @@
 'use client'
 
+import { MarkdownContent } from './MarkdownContent'
+
 interface InsightPanelProps {
   insights: string | null
   isLoading: boolean
@@ -24,12 +26,10 @@ export function InsightPanel({ insights, isLoading }: InsightPanelProps) {
           <div className="h-4 w-11/12 animate-pulse rounded bg-zinc-800" />
           <div className="h-4 w-4/5 animate-pulse rounded bg-zinc-800" />
         </div>
+      ) : insights ? (
+        <MarkdownContent content={insights} />
       ) : (
-        <div className="space-y-2 text-sm leading-6 text-zinc-300">
-          {(insights || '暂无洞察').split('\n').map((line, index) => (
-            <p key={`${line}-${index}`}>{line.replace(/^[-•]\s*/, '• ')}</p>
-          ))}
-        </div>
+        <p className="text-sm text-zinc-500">暂无洞察</p>
       )}
     </section>
   )

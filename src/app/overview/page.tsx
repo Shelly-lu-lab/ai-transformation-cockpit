@@ -210,7 +210,7 @@ export default function OverviewPage() {
           sub={`AI/人力 ${formatRatio(companySummary.ai_to_labor_ratio)}`}
         />
         <KPICard label="总利润" value={isLoading ? '--' : formatWan(companySummary.total_profit)} sub="收入/利润为脱敏模拟" />
-        <KPICard label="平均人效" value={isLoading ? '--' : formatProductivity(companySummary.avg_productivity)} sub="profit / total cost" />
+        <KPICard label="平均人效" value={isLoading ? '--' : formatProductivity(companySummary.avg_productivity)} sub="利润 ÷ 总投入" />
       </section>
 
       <section className="grid grid-cols-[1fr_360px] gap-4">

@@ -1,6 +1,7 @@
 'use client'
 
 import { FormEvent, useState } from 'react'
+import { MarkdownContent } from './MarkdownContent'
 
 interface ChatPanelProps {
   quickButtons: { label: string; prompt: string }[]
@@ -34,7 +35,11 @@ export function ChatPanel({ quickButtons, onSend, messages, isLoading }: ChatPan
               className={message.role === 'user' ? 'text-sm text-blue-200' : 'text-sm leading-6 text-zinc-300'}
             >
               <span className="mr-2 text-xs text-zinc-500">{message.role === 'user' ? '你' : 'AI'}</span>
-              {message.content}
+              {message.role === 'assistant' ? (
+                <MarkdownContent content={message.content} />
+              ) : (
+                message.content
+              )}
             </div>
           ))}
         </div>
