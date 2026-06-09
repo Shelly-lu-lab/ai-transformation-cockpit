@@ -1,22 +1,14 @@
 'use client'
 
-import dynamic from 'next/dynamic'
 import { useMemo, useState } from 'react'
 import { ChatPanel } from '@/components/ChatPanel'
 import { DecisionCard } from '@/components/DecisionCard'
+import { MarkdownContent } from '@/components/MarkdownContent'
 import { useAppData } from '@/lib/DataProvider'
 import { getTalentRiskSummary } from '@/lib/calculations'
 import { formatProductivity, formatRatio, formatWan } from '@/lib/format'
-import { ChatResponse, ProjectWithMetrics, Quadrant } from '@/lib/types'
+import { ChatResponse, ProjectWithMetrics } from '@/lib/types'
 
-const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false })
-
-const quadrantColor: Record<Quadrant, string> = {
-  amplifier: '#22c55e',
-  underperforming: '#ef4444',
-  high_potential: '#3b82f6',
-  low_base: '#71717a',
-}
 
 type DecisionCardData = NonNullable<ChatResponse['decision_card']>
 
@@ -92,7 +84,7 @@ export default function DecisionPage() {
   }
 
   async function handleSend(message: string) {
-    setMessages([{ role: 'user', content: message }])
+    setMessages(prev => [...prev, { role: 'user' as const, content: message }])
     setChatLoading(true)
     setDecisionCard(null)
     try {
@@ -104,120 +96,93 @@ export default function DecisionPage() {
       const data = await res.json()
       if (data.decision_card) {
         setDecisionCard(data.decision_card)
-      } else {
-        // AI 没有返回结构化卡片，使用 mock 兜底
-        setDecisionCard(buildMockDecision(message))
       }
-      setMessages([
-        { role: 'user', content: message },
-        { role: 'assistant', content: data.answer || '方案已生成，请查看下方卡片。' },
-      ])
-      // TODO: handle data.warning for guardrail modal
+      setMessages(prev => [...prev, { role: 'assistant' as const, content: data.answer || '推演完成。' }])
     } catch {
-      // API 失败时使用 mock 兜底
-      const card = buildMockDecision(message)
-      setDecisionCard(card)
-      setMessages([
-        { role: 'user', content: message },
-        { role: 'assistant', content: '已切换至基础分析模式（AI 暂不可用）。' },
-      ])
+      setMessages(prev => [...prev, { role: 'assistant' as const, content: '推演服务暂不可用，请稍后重试。' }])
     }
     setChatLoading(false)
   }
 
-  const miniOption = {
-    backgroundColor: 'transparent',
-    grid: { top: 12, right: 24, bottom: 28, left: 44 },
-    tooltip: {
-      trigger: 'item',
-      backgroundColor: '#27272a',
-      borderColor: '#3f3f46',
-      textStyle: { color: '#fafafa' },
-      formatter: (params: unknown) => {
-        const data = (params as unknown as { data: [number, number, string, Quadrant] }).data
-        return `${data[2]}<br/>投入：${formatWan(data[0])}<br/>利润：${formatWan(data[1])}`
-      },
-    },
-    xAxis: {
-      axisLine: { lineStyle: { color: '#3f3f46' } },
-      splitLine: { lineStyle: { color: '#27272a' } },
-      axisLabel: { show: false },
-    },
-    yAxis: {
-      axisLine: { lineStyle: { color: '#3f3f46' } },
-      splitLine: { lineStyle: { color: '#27272a' } },
-      axisLabel: { show: false },
-    },
-    series: [
-      {
-        type: 'scatter',
-        symbolSize: 14,
-        data: projects.map((project) => [project.labor_cost + project.ai_cost, project.profit, project.name, project.quadrant]),
-        itemStyle: {
-          color: (params: unknown) => {
-            const data = (params as { data: [number, number, string, Quadrant] }).data
-            return quadrantColor[data[3]]
-          },
-          opacity: 0.85,
-        },
-      },
-    ],
-  }
 
   return (
-    <div className="mx-auto max-w-[1440px] space-y-4 px-6 py-5">
+    <div className="mx-auto max-w-[1440px] space-y-4 px-6 pb-44 pt-5">
       <header>
-        <h1 className="text-2xl font-semibold text-zinc-50">决策推演台</h1>
-        <p className="mt-1 text-sm text-zinc-400">描述你的决策意图，AI 基于数据生成可执行方案</p>
+        <h1 className="text-2xl font-semibold text-zinc-50">决策推演</h1>
+        <p className="mt-1 text-sm text-zinc-400">选择推演场景，AI 展示完整的分析过程和决策依据</p>
       </header>
 
       <section className="rounded-lg border border-zinc-700/50 bg-zinc-900 p-4">
-        <div className="mb-3 text-sm font-semibold text-zinc-100">快捷意图</div>
-        <div className="flex gap-3">
+        <div className="mb-3 text-sm font-semibold text-zinc-100">推演场景</div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[
-            ['优化10%人力成本', '在保住核心产能前提下，优化 10% 人力成本'],
-            ['AI预算再分配', '把待优化区的 AI 预算转投高潜力区'],
-            ['生成董事会报告', '生成一份 AI 转型投资复盘报告给董事会'],
+            ['提升待优化区 AI 效果', '针对待优化区项目（AI投入高但人效低），分析原因并给出如何提升 AI 使用效果的具体方案'],
+            ['高潜力区 AI 加码方案', '分析高潜力区项目（人效好但AI渗透低），推演加码 AI 投入的具体策略和预期回报'],
+            ['为项目定制 AI 赋能', `针对 ${selected.underperforming?.name || '某个项目'} 制定 AI 赋能方案：岗位匹配、模型选型、使用深度提升策略`],
+            ['AI 转型效果复盘', '基于当前数据，复盘整体 AI 转型效果：哪里有效、哪里待改善、下一步优先级'],
           ].map(([label, prompt]) => (
             <button
               key={label}
               type="button"
               onClick={() => handleSend(prompt)}
-              className="rounded-md border border-zinc-700 bg-zinc-950 px-4 py-2 text-sm text-zinc-300 hover:border-blue-500/60 hover:text-blue-200"
+              disabled={chatLoading}
+              className="rounded-lg border border-zinc-700 bg-zinc-950 p-3 text-left transition-colors hover:border-blue-500/50 hover:bg-zinc-900 disabled:opacity-50"
             >
-              {label}
+              <div className="text-sm font-medium text-zinc-200">{label}</div>
+              <div className="mt-1 line-clamp-2 text-[11px] text-zinc-500">{prompt.slice(0, 50)}...</div>
             </button>
           ))}
         </div>
       </section>
 
-      <section className="min-h-[430px] rounded-lg border border-zinc-700/50 bg-zinc-900 p-4">
-        {isLoading ? (
-          <div className="h-64 animate-pulse rounded bg-zinc-800" />
-        ) : decisionCard ? (
-          <DecisionCard {...decisionCard} onAdjust={() => setDecisionCard(null)} />
+      <section className="rounded-lg border border-zinc-700/50 bg-zinc-900 p-4">
+        {chatLoading ? (
+          <div className="space-y-4">
+            <div className="text-sm font-medium text-blue-300">AI 正在推演中...</div>
+            <div className="space-y-3">
+              {['分析对象锁定', '当前状态诊断', '关键约束识别', '建议方案生成'].map((step, i) => (
+                <div key={step} className="flex items-center gap-3 text-sm">
+                  <div className={`h-2 w-2 rounded-full ${i < 2 ? 'bg-blue-400' : 'bg-zinc-600'}`} />
+                  <span className={i < 2 ? 'text-zinc-200' : 'text-zinc-600'}>{step}</span>
+                </div>
+              ))}
+            </div>
+            <div className="h-32 animate-pulse rounded bg-zinc-800/50" />
+          </div>
+        ) : messages.length > 0 ? (
+          <div className="space-y-4">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-green-400" />
+              <span className="text-sm font-medium text-green-300">推演完成</span>
+            </div>
+            <div className="max-h-[600px] overflow-auto">
+              {messages.filter(m => m.role === 'assistant').map((msg, i) => (
+                <div key={i} className="prose prose-invert prose-sm max-w-none">
+                  <MarkdownContent content={msg.content} />
+                </div>
+              ))}
+            </div>
+            {decisionCard && (
+              <div className="mt-4 border-t border-zinc-800 pt-4">
+                <DecisionCard {...decisionCard} onAdjust={() => setDecisionCard(null)} />
+              </div>
+            )}
+          </div>
         ) : (
-          <div className="flex h-80 items-center justify-center rounded-lg border border-dashed border-zinc-800 bg-zinc-950/40 text-center">
+          <div className="flex h-64 items-center justify-center text-center">
             <div>
-              <div className="text-lg font-semibold text-zinc-200">等待决策意图</div>
-              <p className="mt-2 text-sm text-zinc-500">选择一个快捷意图，或在底部输入框描述目标和约束。</p>
+              <div className="text-lg font-semibold text-zinc-300">选择推演场景开始分析</div>
+              <p className="mt-2 text-sm text-zinc-500">AI 将展示完整的推理过程：诊断 → 约束 → 方案 → 风险提示</p>
             </div>
           </div>
         )}
       </section>
 
-      {decisionCard ? (
-        <section className="rounded-lg border border-zinc-700/50 bg-zinc-900 p-4">
-          <div className="mb-2 text-sm font-semibold text-zinc-100">方案影响视图</div>
-          <ReactECharts option={miniOption} style={{ height: 200 }} />
-        </section>
-      ) : null}
-
       <ChatPanel
         quickButtons={[
-          { label: '优化10%成本', prompt: '在保住核心产能前提下，优化 10% 人力成本' },
-          { label: '预算转投高潜', prompt: '把待优化区的 AI 预算转投高潜力区' },
-          { label: '董事会报告', prompt: '生成一份 AI 转型投资复盘报告给董事会' },
+          { label: '某项目 AI 赋能', prompt: `为 ${selected.highPotential?.name || '项目'} 定制 AI 赋能方案` },
+          { label: '提升 AI 使用深度', prompt: '分析哪些项目的 AI 使用深度偏低，应如何提升人均活跃天数和使用平台覆盖' },
+          { label: '效果复盘总结', prompt: '基于所有项目数据，总结 AI 转型整体效果和下一步建议' },
         ]}
         onSend={handleSend}
         messages={messages}
