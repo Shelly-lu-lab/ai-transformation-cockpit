@@ -91,18 +91,38 @@ export default function DecisionPage() {
     }
   }
 
-  function handleSend(message: string) {
+  async function handleSend(message: string) {
     setMessages([{ role: 'user', content: message }])
     setChatLoading(true)
-    window.setTimeout(() => {
+    setDecisionCard(null)
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, page: 'decision' }),
+      })
+      const data = await res.json()
+      if (data.decision_card) {
+        setDecisionCard(data.decision_card)
+      } else {
+        // AI 没有返回结构化卡片，使用 mock 兜底
+        setDecisionCard(buildMockDecision(message))
+      }
+      setMessages([
+        { role: 'user', content: message },
+        { role: 'assistant', content: data.answer || '方案已生成，请查看下方卡片。' },
+      ])
+      // TODO: handle data.warning for guardrail modal
+    } catch {
+      // API 失败时使用 mock 兜底
       const card = buildMockDecision(message)
       setDecisionCard(card)
       setMessages([
         { role: 'user', content: message },
-        { role: 'assistant', content: 'AI 分析功能接入中... 以下为基于规则的方案卡片预览。' },
+        { role: 'assistant', content: '已切换至基础分析模式（AI 暂不可用）。' },
       ])
-      setChatLoading(false)
-    }, 600)
+    }
+    setChatLoading(false)
   }
 
   const miniOption = {

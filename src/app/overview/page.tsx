@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChatPanel } from '@/components/ChatPanel'
 import { InsightPanel } from '@/components/InsightPanel'
@@ -48,20 +48,55 @@ export default function OverviewPage() {
   const { projects, companySummary, isLoading, error } = useAppData()
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([])
   const [chatLoading, setChatLoading] = useState(false)
+  const [aiInsights, setAiInsights] = useState<string | null>(null)
+  const [aiInsightsLoading, setAiInsightsLoading] = useState(false)
 
   const maxHeadcount = Math.max(...projects.map((project) => project.headcount), 1)
-  const insights = useMemo(() => buildOverviewInsights(projects), [projects])
+  const fallbackInsights = useMemo(() => buildOverviewInsights(projects), [projects])
+  const diagnosisRan = useRef(false)
 
-  function handleSend(message: string) {
+  // AI 自动诊断（仅在数据加载后运行一次）
+  useEffect(() => {
+    if (projects.length > 0 && !diagnosisRan.current) {
+      diagnosisRan.current = true
+      setAiInsightsLoading(true)
+      fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: '', page: 'overview_auto_diagnosis' }),
+      })
+        .then(res => res.json())
+        .then(data => {
+          setAiInsights(data.answer || null)
+          setAiInsightsLoading(false)
+        })
+        .catch(() => {
+          setAiInsightsLoading(false)
+        })
+    }
+  }, [projects.length])
+
+  async function handleSend(message: string) {
     setMessages([{ role: 'user', content: message }])
     setChatLoading(true)
-    window.setTimeout(() => {
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, page: 'overview' }),
+      })
+      const data = await res.json()
       setMessages([
         { role: 'user', content: message },
-        { role: 'assistant', content: 'AI 分析功能接入中...' },
+        { role: 'assistant', content: data.answer || '暂无分析结果' },
       ])
-      setChatLoading(false)
-    }, 500)
+    } catch {
+      setMessages([
+        { role: 'user', content: message },
+        { role: 'assistant', content: '分析请求失败，请重试。' },
+      ])
+    }
+    setChatLoading(false)
   }
 
   const option = {
@@ -196,7 +231,7 @@ export default function OverviewPage() {
             />
           )}
         </div>
-        <InsightPanel insights={insights} isLoading={isLoading} />
+        <InsightPanel insights={aiInsights || fallbackInsights} isLoading={isLoading || aiInsightsLoading} />
       </section>
 
       <ChatPanel

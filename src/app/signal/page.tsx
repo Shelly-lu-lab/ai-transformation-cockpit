@@ -80,16 +80,27 @@ export default function SignalPage() {
     return () => window.clearTimeout(timer)
   }, [selectedProjectId])
 
-  function handleSend(message: string) {
+  async function handleSend(message: string) {
     setMessages([{ role: 'user', content: message }])
     setChatLoading(true)
-    window.setTimeout(() => {
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, page: 'signal', selected_project_id: selectedProjectId }),
+      })
+      const data = await res.json()
       setMessages([
         { role: 'user', content: message },
-        { role: 'assistant', content: 'AI 分析功能接入中...' },
+        { role: 'assistant', content: data.answer || '暂无分析结果' },
       ])
-      setChatLoading(false)
-    }, 500)
+    } catch {
+      setMessages([
+        { role: 'user', content: message },
+        { role: 'assistant', content: '分析请求失败，请重试。' },
+      ])
+    }
+    setChatLoading(false)
   }
 
   const medianProductivity = useMemo(() => median(projects.map((project) => project.productivity)), [projects])
