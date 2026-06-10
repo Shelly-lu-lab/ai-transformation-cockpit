@@ -43,7 +43,7 @@ function getTalent(): TalentRecord[] {
 export async function POST(request: NextRequest) {
   try {
     const body: ChatRequest = await request.json()
-    const { message, page, selected_project_id } = body
+    const { message, page, selected_project_id, client_context } = body
 
     const apiKey = process.env.ANTHROPIC_AUTH_TOKEN || process.env.ANTHROPIC_API_KEY
     if (!apiKey) {
@@ -60,20 +60,27 @@ export async function POST(request: NextRequest) {
     const client = new Anthropic(clientOptions)
     const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6-20250514'
 
-    const projects = getProjects()
-    const trend = getTrend()
-    const talent = getTalent()
-
     let contextPrompt = ''
     let dataContext = ''
 
-    if (page === 'overview_auto_diagnosis') {
+    if (client_context?.trim()) {
+      if (page === 'decision') contextPrompt = DECISION_CONTEXT_PROMPT
+      else if (page === 'signal') contextPrompt = SIGNAL_CONTEXT_PROMPT
+      else if (page === 'overview_auto_diagnosis') contextPrompt = AUTO_DIAGNOSIS_PROMPT
+      else contextPrompt = OVERVIEW_CONTEXT_PROMPT
+      dataContext = client_context.slice(0, 30000)
+    } else if (page === 'overview_auto_diagnosis') {
+      const projects = getProjects()
       contextPrompt = AUTO_DIAGNOSIS_PROMPT
       dataContext = buildOverviewContext(projects)
     } else if (page === 'overview') {
+      const projects = getProjects()
       contextPrompt = OVERVIEW_CONTEXT_PROMPT
       dataContext = buildOverviewContext(projects)
     } else if (page === 'signal' && selected_project_id) {
+      const projects = getProjects()
+      const trend = getTrend()
+      const talent = getTalent()
       const project = projects.find(p => p.id === selected_project_id)
       if (project) {
         contextPrompt = SIGNAL_CONTEXT_PROMPT
@@ -83,9 +90,12 @@ export async function POST(request: NextRequest) {
         dataContext = buildOverviewContext(projects)
       }
     } else if (page === 'decision') {
+      const projects = getProjects()
+      const talent = getTalent()
       contextPrompt = DECISION_CONTEXT_PROMPT
       dataContext = buildDecisionContext(projects, talent)
     } else {
+      const projects = getProjects()
       contextPrompt = OVERVIEW_CONTEXT_PROMPT
       dataContext = buildOverviewContext(projects)
     }

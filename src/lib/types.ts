@@ -97,6 +97,7 @@ export interface ChatRequest {
   message: string
   page: 'overview' | 'signal' | 'decision' | 'overview_auto_diagnosis'
   selected_project_id?: string
+  client_context?: string
 }
 
 export interface ChatResponse {

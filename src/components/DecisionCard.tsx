@@ -18,25 +18,26 @@ export function DecisionCard({
   onAdjust,
 }: DecisionCardProps) {
   return (
-    <article className="rounded-lg border border-blue-500/30 bg-zinc-900 p-5">
+    <article className="rounded-lg border border-blue-500/30 bg-zinc-900 p-5 shadow-2xl shadow-black/20">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-lg font-semibold text-zinc-50">{title}</h3>
+          <div className="text-xs font-medium uppercase tracking-[0.16em] text-blue-300">经营方案</div>
+          <h3 className="mt-2 text-xl font-semibold text-zinc-50">{title}</h3>
           <p className="mt-1 text-sm text-zinc-400">基于当前项目组合、人才护栏和 AI 投入结构生成</p>
         </div>
-        <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs text-blue-200">
-          Decision
+        <span className="rounded-full border border-green-500/30 bg-green-500/10 px-3 py-1 text-xs text-green-200">
+          已通过护栏
         </span>
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-3">
         <div className="rounded-md border border-zinc-800 bg-zinc-950 p-4">
           <div className="text-xs text-zinc-500">预计节省</div>
-          <div className="mt-2 text-2xl font-bold text-green-300">{expected_saving}</div>
+          <div className="mt-2 text-3xl font-bold tabular-nums text-green-300">{expected_saving}</div>
         </div>
         <div className="rounded-md border border-zinc-800 bg-zinc-950 p-4">
           <div className="text-xs text-zinc-500">预计人效变化</div>
-          <div className="mt-2 text-2xl font-bold text-blue-300">{productivity_delta}</div>
+          <div className="mt-2 text-3xl font-bold tabular-nums text-blue-300">{productivity_delta}</div>
         </div>
       </div>
 
@@ -56,8 +57,8 @@ export function DecisionCard({
           </div>
         </section>
 
-        <section>
-          <h4 className="text-sm font-semibold text-zinc-100">人才护栏</h4>
+	        <section>
+	          <h4 className="text-sm font-semibold text-zinc-100">人才护栏</h4>
           <div className="mt-3 space-y-3">
             {talent_guards.map((item, index) => (
               <div key={`${item.target}-${index}`} className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3">

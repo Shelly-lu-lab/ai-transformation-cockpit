@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
-import * as XLSX from 'xlsx'
+import { parseUploadedFiles, saveUploadedDataset, UploadedDataset, UploadFileSummary } from '@/lib/uploadData'
 
 const steps = [
   '识别数据结构...',
@@ -12,54 +12,40 @@ const steps = [
   '人才护栏扫描',
 ]
 
-interface FileInfo {
-  name: string
-  rows: number
-  cols: number
-  columns: string[]
-}
-
 export default function Home() {
   const router = useRouter()
   const [activeStep, setActiveStep] = useState(-1)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [files, setFiles] = useState<FileInfo[]>([])
+  const [files, setFiles] = useState<UploadFileSummary[]>([])
+  const [uploadedDataset, setUploadedDataset] = useState<UploadedDataset | null>(null)
+  const [uploadErrors, setUploadErrors] = useState<string[]>([])
+  const [isParsing, setIsParsing] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  function handleFiles(fileList: FileList) {
-    const results: FileInfo[] = []
-    let processed = 0
-    const total = fileList.length
-
-    Array.from(fileList).forEach((file) => {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer)
-          const workbook = XLSX.read(data, { type: 'array' })
-          const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
-          const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as unknown[][]
-          const headers = (jsonData[0] || []) as string[]
-          results.push({
-            name: file.name,
-            rows: jsonData.length - 1,
-            cols: headers.length,
-            columns: headers.slice(0, 5),
-          })
-        } catch {
-          results.push({ name: file.name, rows: 0, cols: 0, columns: ['解析失败'] })
-        }
-        processed++
-        if (processed === total) {
-          setFiles(results)
-        }
-      }
-      reader.readAsArrayBuffer(file)
-    })
+  async function handleFiles(fileList: FileList) {
+    setIsParsing(true)
+    setUploadErrors([])
+    setUploadedDataset(null)
+    try {
+      const result = await parseUploadedFiles(Array.from(fileList))
+      setFiles(result.summaries)
+      setUploadErrors(result.errors)
+      setUploadedDataset(result.dataset)
+    } catch (error) {
+      setUploadErrors([(error as Error).message])
+    } finally {
+      setIsParsing(false)
+    }
   }
 
-  function startDemo() {
+  function startAnalysis() {
     if (isProcessing) return
+    if (files.length > 0 && !uploadedDataset) {
+      setUploadErrors(prev => prev.length > 0 ? prev : ['上传文件尚未形成可分析数据集，请上传模板三表，或提供 projects schema 数据'])
+      return
+    }
+
+    if (uploadedDataset) saveUploadedDataset(uploadedDataset)
     setIsProcessing(true)
     steps.forEach((_, index) => {
       window.setTimeout(() => setActiveStep(index), (index + 1) * 600)
@@ -79,11 +65,27 @@ export default function Home() {
         <div className="mt-10 rounded-lg border border-dashed border-zinc-700 bg-zinc-900/70 p-8">
           <div className="text-sm font-medium text-zinc-200">上传三类数据，AI 自动生成决策分析</div>
           <p className="mt-2 text-xs text-zinc-500">支持一次选择多个文件（业务产出 + 人力成本 + AI 使用日志），格式：.xlsx / .csv</p>
+          <div className="mt-4 flex justify-center gap-2 text-xs">
+            {[
+              ['人力成本模板', '/templates/人力成本数据.xlsx'],
+              ['业务产出模板', '/templates/业务产出数据.xlsx'],
+              ['AI 使用模板', '/templates/AI使用数据.xlsx'],
+            ].map(([label, href]) => (
+              <a
+                key={href}
+                href={href}
+                download
+                className="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-zinc-300 hover:border-blue-500/60 hover:text-blue-200"
+              >
+                {label}
+              </a>
+            ))}
+          </div>
 
           <input
             ref={fileInputRef}
             type="file"
-            accept=".xlsx,.xls,.csv"
+            accept=".xlsx,.xls,.csv,.json"
             multiple
             className="hidden"
             onChange={(e) => {
@@ -96,37 +98,60 @@ export default function Home() {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => {
+              event.preventDefault()
+              if (event.dataTransfer.files.length > 0) handleFiles(event.dataTransfer.files)
+            }}
             className="mt-5 w-full cursor-pointer rounded-lg border-2 border-dashed border-zinc-600 bg-zinc-950/50 px-6 py-8 text-center transition-colors hover:border-blue-500/60 hover:bg-zinc-900"
           >
-            <div className="text-2xl text-zinc-500">📂</div>
-            <div className="mt-2 text-sm text-zinc-300">点击选择文件（可多选）</div>
-            <div className="mt-1 text-xs text-zinc-500">或拖拽文件到此处</div>
+            <div className="mx-auto grid h-9 w-12 place-items-center rounded border border-zinc-700 bg-zinc-900 text-[11px] font-semibold tracking-[0.16em] text-zinc-500">DATA</div>
+            <div className="mt-2 text-sm text-zinc-300">{isParsing ? '正在解析文件...' : '点击选择文件（可多选）'}</div>
+            <div className="mt-1 text-xs text-zinc-500">支持拖拽；可上传上方模板三表，或 projects / monthly_trend / talent_risk schema 文件</div>
           </button>
 
           {files.length > 0 && (
             <div className="mt-4 space-y-2 text-left">
               {files.map((f, i) => (
-                <div key={i} className="flex items-center gap-3 rounded-md border border-green-500/30 bg-green-500/5 px-3 py-2">
-                  <span className="text-green-400">✓</span>
+                <div
+                  key={`${f.name}-${i}`}
+                  className={[
+                    'flex items-center gap-3 rounded-md border px-3 py-2',
+                    f.status === 'ready' ? 'border-green-500/30 bg-green-500/5' : f.status === 'warning' ? 'border-amber-500/30 bg-amber-500/5' : 'border-red-500/30 bg-red-500/5',
+                  ].join(' ')}
+                >
+                  <span className={f.status === 'ready' ? 'text-green-400' : f.status === 'warning' ? 'text-amber-400' : 'text-red-400'}>
+                    {f.status === 'ready' ? '✓' : f.status === 'warning' ? '!' : '×'}
+                  </span>
                   <div className="flex-1 min-w-0">
                     <div className="truncate text-sm text-zinc-200">{f.name}</div>
-                    <div className="text-xs text-zinc-500">{f.rows} 行 × {f.cols} 列 · {f.columns.join(', ')}</div>
+                    <div className="text-xs text-zinc-500">{f.message} · {f.rows} 行 × {f.cols} 列 · {f.columns.join(', ') || '无字段'}</div>
                   </div>
                 </div>
               ))}
-              <div className="text-center text-xs text-green-400">已识别 {files.length} 份数据文件</div>
+              {uploadedDataset ? (
+                <DataCompleteness dataset={uploadedDataset} />
+              ) : null}
             </div>
           )}
+
+          {uploadErrors.length > 0 ? (
+            <div className="mt-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-left text-xs leading-5 text-red-200">
+              {uploadErrors.map((error) => (
+                <div key={error}>{error}</div>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-6 flex items-center justify-center gap-4">
           <button
             type="button"
-            onClick={startDemo}
-            disabled={isProcessing}
+            onClick={startAnalysis}
+            disabled={isProcessing || isParsing}
             className="h-12 rounded-md bg-blue-500 px-7 text-sm font-semibold text-white transition-colors hover:bg-blue-400 disabled:cursor-not-allowed disabled:bg-zinc-700"
           >
-            {isProcessing ? '正在生成...' : files.length > 0 ? `基于上传数据生成分析` : '使用示例数据体验'}
+            {isProcessing ? '正在生成...' : isParsing ? '正在解析...' : uploadedDataset ? '基于上传数据生成分析' : '使用示例数据体验'}
           </button>
         </div>
 
@@ -155,6 +180,36 @@ export default function Home() {
           </div>
         )}
       </section>
+    </div>
+  )
+}
+
+function DataCompleteness({ dataset }: { dataset: UploadedDataset }) {
+  const projectCount = dataset.projects.length
+  const monthCount = new Set(dataset.monthlyTrend.map((record) => record.month)).size
+  const aiCoveredCount = dataset.projects.filter((project) => project.ai_cost > 0 || project.ai_penetration > 0).length
+  const hasTalent = dataset.talentRisk.length > 0
+  const items = [
+    { label: '业务单元', value: `${projectCount} 个`, ready: projectCount > 0 },
+    { label: '月度趋势', value: monthCount > 0 ? `${monthCount} 个月` : '未提供', ready: monthCount > 0 },
+    { label: 'AI 覆盖', value: `${aiCoveredCount}/${projectCount}`, ready: aiCoveredCount > 0 },
+    { label: '人才护栏', value: hasTalent ? `${dataset.talentRisk.length} 条` : '降级运行', ready: hasTalent },
+  ]
+
+  return (
+    <div className="rounded-md border border-blue-500/30 bg-blue-500/5 p-3">
+      <div className="mb-2 text-center text-xs font-medium text-blue-300">已生成可分析数据集</div>
+      <div className="grid grid-cols-4 gap-2">
+        {items.map((item) => (
+          <div key={item.label} className="rounded border border-zinc-800 bg-zinc-950/80 px-2 py-2 text-center">
+            <div className={item.ready ? 'text-sm font-semibold tabular-nums text-zinc-100' : 'text-sm font-semibold text-amber-300'}>{item.value}</div>
+            <div className="mt-1 text-[10px] text-zinc-500">{item.label}</div>
+          </div>
+        ))}
+      </div>
+      {!hasTalent ? (
+        <div className="mt-2 text-center text-[11px] text-amber-300">未上传人才风险数据时，系统仍可做人效和 AI 投入分析，人才护栏将使用降级提示。</div>
+      ) : null}
     </div>
   )
 }

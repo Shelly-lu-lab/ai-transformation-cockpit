@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { Project, MonthlyRecord, TalentRecord, ProjectWithMetrics, CompanySummary } from './types'
 import { enrichProjects, getCompanySummary } from './calculations'
+import { clearUploadedDataset, readUploadedDataset, UPLOADED_DATASET_EVENT } from './uploadData'
 
 interface AppData {
   projects: ProjectWithMetrics[]
@@ -11,6 +12,9 @@ interface AppData {
   companySummary: CompanySummary
   isLoading: boolean
   error: string | null
+  dataSource: 'demo' | 'uploaded'
+  sourceName: string
+  resetUploadedData: () => void
 }
 
 const DataContext = createContext<AppData>({
@@ -25,26 +29,52 @@ const DataContext = createContext<AppData>({
   },
   isLoading: true,
   error: null,
+  dataSource: 'demo',
+  sourceName: '示例数据',
+  resetUploadedData: () => undefined,
 })
+
+const emptyCompanySummary: CompanySummary = {
+  total_headcount: 0, total_labor_cost: 0, total_ai_cost: 0,
+  total_revenue: 0, total_profit: 0, ai_to_labor_ratio: 0,
+  avg_productivity: 0, project_count: 0,
+  quadrant_distribution: { amplifier: 0, underperforming: 0, high_potential: 0, low_base: 0 },
+}
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData>({
     projects: [],
     monthlyTrend: [],
     talentRisk: [],
-    companySummary: {
-      total_headcount: 0, total_labor_cost: 0, total_ai_cost: 0,
-      total_revenue: 0, total_profit: 0, ai_to_labor_ratio: 0,
-      avg_productivity: 0, project_count: 0,
-      quadrant_distribution: { amplifier: 0, underperforming: 0, high_potential: 0, low_base: 0 },
-    },
+    companySummary: emptyCompanySummary,
     isLoading: true,
     error: null,
+    dataSource: 'demo',
+    sourceName: '示例数据',
+    resetUploadedData: () => undefined,
   })
 
   useEffect(() => {
     async function loadData() {
       try {
+        const uploadedDataset = readUploadedDataset()
+        if (uploadedDataset) {
+          const projects = enrichProjects(uploadedDataset.projects)
+          const companySummary = getCompanySummary(projects)
+          setData(prev => ({
+            ...prev,
+            projects,
+            monthlyTrend: uploadedDataset.monthlyTrend,
+            talentRisk: uploadedDataset.talentRisk,
+            companySummary,
+            isLoading: false,
+            error: null,
+            dataSource: 'uploaded',
+            sourceName: uploadedDataset.sourceName,
+          }))
+          return
+        }
+
         const [projRes, trendRes, riskRes] = await Promise.all([
           fetch('/data/demo/projects.json'),
           fetch('/data/demo/monthly_trend.json'),
@@ -62,15 +92,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const projects = enrichProjects(rawProjects)
         const companySummary = getCompanySummary(projects)
 
-        setData({ projects, monthlyTrend, talentRisk, companySummary, isLoading: false, error: null })
+        setData(prev => ({
+          ...prev,
+          projects,
+          monthlyTrend,
+          talentRisk,
+          companySummary,
+          isLoading: false,
+          error: null,
+          dataSource: 'demo',
+          sourceName: '示例数据',
+        }))
       } catch (err) {
         setData(prev => ({ ...prev, isLoading: false, error: (err as Error).message }))
       }
     }
     loadData()
+
+    window.addEventListener(UPLOADED_DATASET_EVENT, loadData)
+    return () => window.removeEventListener(UPLOADED_DATASET_EVENT, loadData)
   }, [])
 
-  return <DataContext.Provider value={data}>{children}</DataContext.Provider>
+  function resetUploadedData() {
+    clearUploadedDataset()
+  }
+
+  return <DataContext.Provider value={{ ...data, resetUploadedData }}>{children}</DataContext.Provider>
 }
 
 export function useAppData() {

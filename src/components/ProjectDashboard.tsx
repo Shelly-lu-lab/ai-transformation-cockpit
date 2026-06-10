@@ -21,7 +21,16 @@ export function ProjectDashboard({ project, trend, talents }: ProjectDashboardPr
     regular: projectTalents.filter(t => t.tier === 'regular').length,
     light: projectTalents.filter(t => t.tier === 'light').length,
   }
+  const mediumRiskCount = projectTalents.filter(t => t.risk_level === 'medium').length
+  const lowRiskCount = projectTalents.filter(t => t.risk_level === 'low').length
   const totalTracked = tierCounts.power + tierCounts.regular + tierCounts.light
+  const engagementItems = [
+    { label: '总体', value: project.engagement_dimensions?.overall },
+    { label: '职业发展', value: project.engagement_dimensions?.career_development },
+    { label: '薪酬认可', value: project.engagement_dimensions?.compensation_recognition },
+    { label: '留任意愿', value: project.engagement_dimensions?.stay_intention },
+  ]
+  const hasEngagementData = engagementItems.some(item => item.value !== null && item.value !== undefined)
 
   // 1. 成本构成环形图
   const costPieOption = {
@@ -130,8 +139,8 @@ export function ProjectDashboard({ project, trend, talents }: ProjectDashboardPr
       label: { show: false },
       data: [
         { value: riskSummary.high_risk_count, name: '高风险', itemStyle: { color: '#ef4444' } },
-        { value: projectTalents.filter(t => t.risk_level === 'medium').length, name: '中风险', itemStyle: { color: '#f59e0b' } },
-        { value: projectTalents.filter(t => t.risk_level === 'low').length, name: '低风险', itemStyle: { color: '#22c55e' } },
+        { value: mediumRiskCount, name: '中风险', itemStyle: { color: '#f59e0b' } },
+        { value: lowRiskCount, name: '低风险', itemStyle: { color: '#22c55e' } },
       ],
     }],
   }
@@ -141,7 +150,7 @@ export function ProjectDashboard({ project, trend, talents }: ProjectDashboardPr
       {/* 顶部 KPI 行 */}
       <div className="grid grid-cols-5 gap-3">
         <MiniKPI label="人效" value={formatProductivity(project.productivity)} color={project.quadrant === 'amplifier' ? 'green' : project.quadrant === 'underperforming' ? 'red' : 'blue'} />
-        <MiniKPI label="AI 强度" value={formatRatio(project.ai_intensity)} />
+        <MiniKPI label="AI 强度" value={formatRatio(project.ai_intensity)} hint="AI成本/人力成本" />
         <MiniKPI label="AI 月成本" value={formatWan(project.ai_cost)} />
         <MiniKPI label="人均 AI" value={formatWan(project.ai_cost / Math.max(project.headcount, 1))} />
         <MiniKPI label="覆盖率" value={formatPercent(project.ai_penetration)} />
@@ -185,22 +194,21 @@ export function ProjectDashboard({ project, trend, talents }: ProjectDashboardPr
             </div>
             <div className="space-y-1 text-xs">
               <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-red-500" /> 高风险 {riskSummary.high_risk_count} 人</div>
-              <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-amber-500" /> 中风险 {projectTalents.filter(t => t.risk_level === 'medium').length} 人</div>
-              <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-green-500" /> 低风险 {projectTalents.filter(t => t.risk_level === 'low').length} 人</div>
+              <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-amber-500" /> 中风险 {mediumRiskCount} 人</div>
+              <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-green-500" /> 低风险 {lowRiskCount} 人</div>
             </div>
           </div>
-          <div className="mt-2 text-[11px] text-zinc-500">高风险 = Power 用户 + 薪酬竞争力 CR &lt; 0.9</div>
+          <div className="mt-2 space-y-1 rounded-md border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-[11px] leading-5 text-zinc-500">
+            <div><span className="text-red-300">高风险</span>：Power 用户且薪酬竞争力 CR &lt; 0.9。</div>
+            <div><span className="text-amber-300">中风险</span>：Power 用户 CR &lt; 1.0 或 AI成本/薪酬 &gt; 20%，或任一员工 CR &lt; 0.85。</div>
+            <div><span className="text-green-300">低风险</span>：未触发以上人才护栏预警。</div>
+          </div>
         </div>
         <div className="rounded-lg border border-zinc-700/50 bg-zinc-900 p-3">
           <div className="mb-1 text-xs font-medium text-zinc-400">敬业度关键维度</div>
-          {project.engagement_dimensions ? (
+          {hasEngagementData ? (
             <div className="mt-2 space-y-2">
-              {[
-                { label: '总体', value: project.engagement_dimensions.overall },
-                { label: '职业发展', value: project.engagement_dimensions.career_development },
-                { label: '薪酬认可', value: project.engagement_dimensions.compensation_recognition },
-                { label: '留任意愿', value: project.engagement_dimensions.stay_intention },
-              ].map(item => (
+              {engagementItems.map(item => (
                 <div key={item.label} className="flex items-center gap-2">
                   <span className="w-14 text-[11px] text-zinc-400">{item.label}</span>
                   <div className="h-2 flex-1 rounded-full bg-zinc-800">
@@ -217,7 +225,10 @@ export function ProjectDashboard({ project, trend, talents }: ProjectDashboardPr
               ))}
             </div>
           ) : (
-            <div className="mt-4 text-center text-xs text-zinc-600">暂无调研数据</div>
+            <div className="mt-4 rounded-md border border-dashed border-zinc-700 bg-zinc-950/60 px-3 py-4 text-xs leading-5 text-zinc-500">
+              <div className="font-medium text-zinc-300">未匹配到该项目的敬业度调研样本</div>
+              <div className="mt-1">可能原因：调研部门口径与当前项目口径未映射，或该项目未进入本次调研拆分表。</div>
+            </div>
           )}
         </div>
       </div>
@@ -225,12 +236,13 @@ export function ProjectDashboard({ project, trend, talents }: ProjectDashboardPr
   )
 }
 
-function MiniKPI({ label, value, color = 'default' }: { label: string; value: string; color?: string }) {
+function MiniKPI({ label, value, color = 'default', hint }: { label: string; value: string; color?: string; hint?: string }) {
   const colorClass = color === 'green' ? 'text-green-400' : color === 'red' ? 'text-red-400' : color === 'blue' ? 'text-blue-400' : 'text-zinc-100'
   return (
     <div className="rounded-lg border border-zinc-700/50 bg-zinc-900 p-2 text-center">
       <div className={`text-lg font-bold ${colorClass}`}>{value}</div>
       <div className="text-[10px] text-zinc-500">{label}</div>
+      {hint ? <div className="mt-0.5 text-[9px] text-zinc-600">{hint}</div> : null}
     </div>
   )
 }

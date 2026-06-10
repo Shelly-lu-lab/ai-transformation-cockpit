@@ -4,11 +4,11 @@ import dynamic from 'next/dynamic'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChatPanel } from '@/components/ChatPanel'
-import { InsightPanel } from '@/components/InsightPanel'
 import { KPICard } from '@/components/KPICard'
 import { useAppData } from '@/lib/DataProvider'
 import { formatNumber, formatProductivity, formatRatio, formatWan } from '@/lib/format'
 import { ProjectWithMetrics, Quadrant } from '@/lib/types'
+import { buildOverviewContext } from '@/lib/buildContext'
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false })
 
@@ -47,17 +47,62 @@ function buildOverviewInsights(projects: ProjectWithMetrics[]) {
   ].join('\n')
 }
 
+function productivityDelta(project: ProjectWithMetrics, average: number) {
+  if (average === 0) return 0
+  return project.productivity / average - 1
+}
+
+function buildSignalCards(projects: ProjectWithMetrics[], averageProductivity: number) {
+  if (projects.length === 0) return []
+  const sortedByProductivity = [...projects].sort((a, b) => b.productivity - a.productivity)
+  const underperforming = projects.filter((project) => project.quadrant === 'underperforming')
+  const highPotential = projects.filter((project) => project.quadrant === 'high_potential')
+  const largestDrag = underperforming.length > 0
+    ? [...underperforming].sort((a, b) => (b.ai_cost * Math.max(0, averageProductivity - b.productivity)) - (a.ai_cost * Math.max(0, averageProductivity - a.productivity)))[0]
+    : sortedByProductivity[sortedByProductivity.length - 1]
+  const benchmark = sortedByProductivity[0]
+  const opportunity = highPotential.length > 0
+    ? [...highPotential].sort((a, b) => b.profit - a.profit)[0]
+    : sortedByProductivity.find((project) => project.ai_intensity < 0.08) || sortedByProductivity[0]
+
+  return [
+    {
+      label: '效率偏离项',
+      project: largestDrag,
+      tone: 'red',
+      summary: `人效 ${formatProductivity(largestDrag.productivity)}，较平均 ${formatRatio(productivityDelta(largestDrag, averageProductivity))}`,
+      action: '建议诊断 AI 使用结构与岗位匹配',
+    },
+    {
+      label: '最高人效标杆',
+      project: benchmark,
+      tone: 'green',
+      summary: `人效 ${formatProductivity(benchmark.productivity)}，利润 ${formatWan(benchmark.profit)}`,
+      action: '沉淀可复制的 AI 使用方法',
+    },
+    {
+      label: '高潜力加码',
+      project: opportunity,
+      tone: 'blue',
+      summary: `AI 强度 ${formatRatio(opportunity.ai_intensity)}，人效 ${formatProductivity(opportunity.productivity)}`,
+      action: '小步加码 AI 预算并设置 3 个月观察点',
+    },
+  ]
+}
+
 export default function OverviewPage() {
   const router = useRouter()
-  const { projects, companySummary, isLoading, error } = useAppData()
+  const { projects, companySummary, isLoading, error, dataSource, sourceName } = useAppData()
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([])
   const [chatLoading, setChatLoading] = useState(false)
   const [aiInsights, setAiInsights] = useState<string | null>(null)
   const [aiInsightsLoading, setAiInsightsLoading] = useState(false)
 
-  const maxHeadcount = Math.max(...projects.map((project) => project.headcount), 1)
-  const fallbackInsights = useMemo(() => buildOverviewInsights(projects), [projects])
-  const diagnosisRan = useRef(false)
+	  const maxHeadcount = Math.max(...projects.map((project) => project.headcount), 1)
+	  const fallbackInsights = useMemo(() => buildOverviewInsights(projects), [projects])
+  const rankedProjects = useMemo(() => [...projects].sort((a, b) => b.productivity - a.productivity), [projects])
+  const signalCards = useMemo(() => buildSignalCards(projects, companySummary.avg_productivity), [projects, companySummary.avg_productivity])
+	  const diagnosisRan = useRef(false)
 
   // AI 自动诊断（仅在数据加载后运行一次）
   useEffect(() => {
@@ -69,7 +114,11 @@ export default function OverviewPage() {
       fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: '', page: 'overview_auto_diagnosis' }),
+        body: JSON.stringify({
+          message: '',
+          page: 'overview_auto_diagnosis',
+          client_context: dataSource === 'uploaded' ? buildOverviewContext(projects) : undefined,
+        }),
         signal: controller.signal,
       })
         .then(res => res.json())
@@ -88,7 +137,7 @@ export default function OverviewPage() {
           setAiInsightsLoading(false)
         })
     }
-  }, [projects.length])
+  }, [projects, dataSource])
 
   async function handleSend(message: string) {
     setMessages(prev => [...prev, { role: 'user', content: message }])
@@ -97,7 +146,11 @@ export default function OverviewPage() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, page: 'overview' }),
+        body: JSON.stringify({
+          message,
+          page: 'overview',
+          client_context: dataSource === 'uploaded' ? buildOverviewContext(projects) : undefined,
+        }),
       })
       const data = await res.json()
       setMessages(prev => [...prev, { role: 'assistant', content: data.answer || '暂无分析结果' }])
@@ -120,15 +173,17 @@ export default function OverviewPage() {
       backgroundColor: '#27272a',
       borderColor: '#3f3f46',
       textStyle: { color: '#fafafa' },
-      formatter: (params: unknown) => {
-        const data = (params as unknown as { data: ChartPoint }).data
-        return [
-          `<b>${data[3]}</b>`,
-          `人数：${data[5]}`,
-          `人效：${formatProductivity(Number(data[4]))}`,
-          `AI 强度：${data[6]}`,
-          `总投入：${formatWan(data[0])}`,
-          `利润：${formatWan(data[1])}`,
+	      formatter: (params: unknown) => {
+	        const data = (params as unknown as { data: ChartPoint }).data
+        const delta = productivityDelta({ productivity: Number(data[4]) } as ProjectWithMetrics, companySummary.avg_productivity)
+	        return [
+	          `<b>${data[3]}</b>`,
+	          `人数：${data[5]}`,
+	          `人效：${formatProductivity(Number(data[4]))}`,
+          `较平均：${formatRatio(delta)}`,
+	          `AI 强度：${data[6]}（AI成本/人力成本）`,
+	          `总投入：${formatWan(data[0])}`,
+	          `利润：${formatWan(data[1])}`,
         ].join('<br/>')
       },
     },
@@ -165,8 +220,21 @@ export default function OverviewPage() {
           formatRatio(project.ai_intensity),
           project.id,
         ]),
-      itemStyle: { color: quadrantColor[quadrant as Quadrant], opacity: 0.85 },
-      symbolSize: (value: unknown) => {
+	      itemStyle: { color: quadrantColor[quadrant as Quadrant], opacity: 0.85 },
+      label: {
+        show: true,
+        formatter: (params: unknown) => {
+          const data = (params as { data: ChartPoint }).data
+          const project = projects.find((item) => item.name === data[3])
+          if (!project) return ''
+          const topOrBottom = rankedProjects.slice(0, 3).includes(project) || rankedProjects.slice(-3).includes(project)
+          return topOrBottom ? project.name : ''
+        },
+        color: '#d4d4d8',
+        fontSize: 10,
+        position: 'top',
+      },
+	      symbolSize: (value: unknown) => {
         const point = value as ChartPoint
         return Math.max(20, Math.min(80, 20 + (point[2] / maxHeadcount) * 60))
       },
@@ -205,10 +273,10 @@ export default function OverviewPage() {
     <div className="mx-auto max-w-[1440px] space-y-4 px-6 pb-44 pt-5">
       <header className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-zinc-50">人效全景</h1>
-          <p className="mt-1 text-sm text-zinc-400">投入、利润与 AI 强度的全局分布</p>
+          <h1 className="text-2xl font-semibold text-zinc-50">投入产出全景</h1>
+          <p className="mt-1 text-sm text-zinc-400">总投入、利润与人效偏离的全局分布；AI 强度 = AI 成本 / 人力成本</p>
         </div>
-        <div className="text-xs text-zinc-500">Demo Corp · 2026-04</div>
+        <div className="text-xs text-zinc-500">{dataSource === 'uploaded' ? sourceName : '脱敏样本'} · 2026-04</div>
       </header>
 
       <section className="grid grid-cols-4 gap-4">
@@ -216,17 +284,17 @@ export default function OverviewPage() {
         <KPICard
           label="总人力+AI投入"
           value={isLoading ? '--' : formatWan(companySummary.total_labor_cost + companySummary.total_ai_cost)}
-          sub={`AI/人力 ${formatRatio(companySummary.ai_to_labor_ratio)}`}
+          sub={`整体 AI 强度 ${formatRatio(companySummary.ai_to_labor_ratio)}`}
         />
         <KPICard label="总利润" value={isLoading ? '--' : formatWan(companySummary.total_profit)} sub="收入/利润为脱敏模拟" />
         <KPICard label="平均人效" value={isLoading ? '--' : formatProductivity(companySummary.avg_productivity)} sub="利润 ÷ 总投入" />
       </section>
 
-      <section className="grid grid-cols-[1fr_360px] gap-4">
-        <div className="rounded-lg border border-zinc-700/50 bg-zinc-900 p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-zinc-100">投入产出散点图</h2>
-            <span className="text-xs text-zinc-500">气泡大小 = 人数</span>
+	      <section className="grid grid-cols-[1fr_380px] gap-4">
+	        <div className="rounded-lg border border-zinc-700/50 bg-zinc-900 p-4">
+	          <div className="mb-2 flex items-center justify-between">
+	            <h2 className="text-sm font-semibold text-zinc-100">投入产出分布图</h2>
+	            <span className="text-xs text-zinc-500">斜率 = 人效，气泡大小 = 人数，颜色 = AI 强度与人效象限</span>
           </div>
           {isLoading ? (
             <div className="h-[520px] animate-pulse rounded bg-zinc-800/60" />
@@ -244,8 +312,15 @@ export default function OverviewPage() {
             />
           )}
         </div>
-        <InsightPanel insights={aiInsights || fallbackInsights} isLoading={isLoading || aiInsightsLoading} />
-      </section>
+	        <OverviewDecisionPanel
+	          projects={rankedProjects}
+	          signalCards={signalCards}
+	          avgProductivity={companySummary.avg_productivity}
+	          isLoading={isLoading || aiInsightsLoading}
+	          aiInsights={aiInsights || fallbackInsights}
+	          onOpenProject={(projectId) => router.push(`/signal?id=${projectId}`)}
+	        />
+	      </section>
 
       <section className="grid grid-cols-4 gap-3">
         <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-3">
@@ -288,6 +363,138 @@ export default function OverviewPage() {
         messages={messages}
         isLoading={chatLoading}
       />
+    </div>
+	  )
+	}
+
+function OverviewDecisionPanel({
+  projects,
+  signalCards,
+  avgProductivity,
+  isLoading,
+  aiInsights,
+  onOpenProject,
+}: {
+  projects: ProjectWithMetrics[]
+  signalCards: ReturnType<typeof buildSignalCards>
+  avgProductivity: number
+  isLoading: boolean
+  aiInsights: string | null
+  onOpenProject: (projectId: string) => void
+}) {
+  const topProjects = projects.slice(0, 5)
+  const bottomProjects = projects.slice(-5).reverse()
+  const maxProductivity = Math.max(...projects.map((project) => project.productivity), 1)
+
+  if (isLoading) {
+    return (
+      <aside className="space-y-3">
+        <div className="h-40 animate-pulse rounded-lg border border-zinc-700/50 bg-zinc-900" />
+        <div className="h-64 animate-pulse rounded-lg border border-zinc-700/50 bg-zinc-900" />
+      </aside>
+    )
+  }
+
+  return (
+    <aside className="space-y-3">
+      <section className="rounded-lg border border-zinc-700/50 bg-zinc-900 p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-zinc-100">经营关注信号</h2>
+          <span className="rounded-md border border-blue-500/30 bg-blue-500/10 px-2 py-1 text-[11px] text-blue-300">AI 判读</span>
+        </div>
+        <div className="space-y-2">
+          {signalCards.map((card) => (
+            <button
+              key={`${card.label}-${card.project.id}`}
+              type="button"
+              onClick={() => onOpenProject(card.project.id)}
+              className={[
+                'w-full rounded-md border p-3 text-left transition-colors hover:bg-zinc-800/60',
+                card.tone === 'red' ? 'border-red-500/30 bg-red-500/5' : card.tone === 'green' ? 'border-green-500/30 bg-green-500/5' : 'border-blue-500/30 bg-blue-500/5',
+              ].join(' ')}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <span className={card.tone === 'red' ? 'text-xs font-medium text-red-300' : card.tone === 'green' ? 'text-xs font-medium text-green-300' : 'text-xs font-medium text-blue-300'}>
+                  {card.label}
+                </span>
+                <span className="text-[11px] text-zinc-500">{card.project.name}</span>
+              </div>
+              <div className="mt-2 text-sm text-zinc-100">{card.summary}</div>
+              <div className="mt-1 text-xs text-zinc-500">{card.action}</div>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-zinc-700/50 bg-zinc-900 p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-zinc-100">人效排行</h2>
+          <span className="text-[11px] text-zinc-500">平均 {formatProductivity(avgProductivity)}</span>
+        </div>
+        <RankingList title="Top 5" projects={topProjects} maxProductivity={maxProductivity} avgProductivity={avgProductivity} onOpenProject={onOpenProject} />
+        <div className="my-3 h-px bg-zinc-800" />
+        <RankingList title="Bottom 5" projects={bottomProjects} maxProductivity={maxProductivity} avgProductivity={avgProductivity} onOpenProject={onOpenProject} />
+      </section>
+
+      {aiInsights ? (
+        <section className="rounded-lg border border-zinc-700/50 bg-zinc-900 p-4">
+          <div className="text-xs font-medium text-zinc-400">系统摘要</div>
+          <p className="mt-2 line-clamp-5 whitespace-pre-line text-xs leading-5 text-zinc-500">{aiInsights.replace(/\*\*/g, '')}</p>
+        </section>
+      ) : null}
+    </aside>
+  )
+}
+
+function RankingList({
+  title,
+  projects,
+  maxProductivity,
+  avgProductivity,
+  onOpenProject,
+}: {
+  title: string
+  projects: ProjectWithMetrics[]
+  maxProductivity: number
+  avgProductivity: number
+  onOpenProject: (projectId: string) => void
+}) {
+  return (
+    <div>
+      <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-600">{title}</div>
+      <div className="space-y-2">
+        {projects.map((project, index) => {
+          const delta = productivityDelta(project, avgProductivity)
+          const positive = delta >= 0
+          return (
+            <button
+              key={project.id}
+              type="button"
+              onClick={() => onOpenProject(project.id)}
+              className="w-full rounded-md border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-left hover:border-blue-500/40"
+            >
+              <div className="mb-1 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <span className="mr-2 text-xs text-zinc-600">{index + 1}</span>
+                  <span className="truncate text-sm text-zinc-200">{project.name}</span>
+                </div>
+                <span className={positive ? 'text-xs tabular-nums text-green-300' : 'text-xs tabular-nums text-red-300'}>
+                  {positive ? '+' : ''}{formatRatio(delta)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 flex-1 rounded-full bg-zinc-800">
+                  <div
+                    className={positive ? 'h-1.5 rounded-full bg-green-500' : 'h-1.5 rounded-full bg-red-500'}
+                    style={{ width: `${Math.max(4, Math.min(100, (project.productivity / maxProductivity) * 100))}%` }}
+                  />
+                </div>
+                <span className="w-10 text-right text-xs tabular-nums text-zinc-300">{formatProductivity(project.productivity)}</span>
+              </div>
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }

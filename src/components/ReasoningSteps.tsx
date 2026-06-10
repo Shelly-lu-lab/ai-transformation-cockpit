@@ -19,7 +19,7 @@ interface ReasoningStepsProps {
   relatedProjects?: ProjectWithMetrics[]
 }
 
-const stepIcons = ['🎯', '📊', '⚠️', '💡', '🛡️']
+const stepLabels = ['01', '02', '03', '04', '05']
 const stepColors = ['border-blue-500/30', 'border-green-500/30', 'border-amber-500/30', 'border-purple-500/30', 'border-red-500/30']
 
 export function ReasoningSteps({ steps, relatedProjects }: ReasoningStepsProps) {
@@ -30,11 +30,11 @@ export function ReasoningSteps({ steps, relatedProjects }: ReasoningStepsProps) 
           key={index}
           className={`rounded-lg border ${stepColors[index % stepColors.length]} bg-zinc-900/80 p-4`}
         >
-          {/* Step header */}
-          <div className="mb-3 flex items-center gap-2">
-            <span className="text-base">{stepIcons[index % stepIcons.length]}</span>
-            <span className="text-sm font-semibold text-zinc-100">Step {index + 1}: {step.title}</span>
-          </div>
+	          {/* Step header */}
+	          <div className="mb-3 flex items-center gap-2">
+	            <span className="rounded border border-zinc-700 px-1.5 py-0.5 text-[10px] text-zinc-500">{stepLabels[index % stepLabels.length]}</span>
+	            <span className="text-sm font-semibold text-zinc-100">Step {index + 1}: {step.title}</span>
+	          </div>
 
           {/* Content */}
           <p className="text-sm leading-relaxed text-zinc-300">{step.content}</p>
@@ -92,7 +92,7 @@ export function ReasoningSteps({ steps, relatedProjects }: ReasoningStepsProps) 
                 return (
                   <div key={p.id} className="flex-1 rounded-md border border-zinc-800 bg-zinc-950 p-2 text-center">
                     <div className={`text-xs font-bold ${riskLevel === 'high' ? 'text-red-400' : riskLevel === 'medium' ? 'text-amber-400' : 'text-green-400'}`}>
-                      {riskLevel === 'high' ? '⚠ 高' : riskLevel === 'medium' ? '● 中' : '✓ 低'}
+	                      {riskLevel === 'high' ? '高' : riskLevel === 'medium' ? '中' : '低'}
                     </div>
                     <div className="mt-1 truncate text-[10px] text-zinc-500">{p.name}</div>
                   </div>
@@ -124,21 +124,25 @@ export function ReasoningSteps({ steps, relatedProjects }: ReasoningStepsProps) 
 // Helper: build structured reasoning from project data (for fallback when AI doesn't return structured format)
 export function buildLocalReasoning(
   scenario: string,
-  projects: ProjectWithMetrics[]
+  projects: ProjectWithMetrics[],
+  preferredProjectId?: string
 ): { steps: ReasoningStep[]; relatedProjects: ProjectWithMetrics[] } {
   const underperforming = projects.filter(p => p.quadrant === 'underperforming').sort((a, b) => b.ai_cost - a.ai_cost)
   const highPotential = projects.filter(p => p.quadrant === 'high_potential').sort((a, b) => b.productivity - a.productivity)
-  const amplifier = projects.filter(p => p.quadrant === 'amplifier')
+  const preferredProject = preferredProjectId ? projects.find(p => p.id === preferredProjectId) : undefined
 
-  if (scenario.includes('待优化') || scenario.includes('效果')) {
-    const target = underperforming[0]
+  if (scenario.includes('待优化') || scenario.includes('预算优化')) {
+    const target = preferredProject || underperforming[0]
+    const relatedProjects = preferredProject
+      ? [preferredProject, ...underperforming.filter(p => p.id !== preferredProject.id)].slice(0, 5)
+      : underperforming.slice(0, 5)
     return {
-      relatedProjects: underperforming.slice(0, 5),
+      relatedProjects,
       steps: [
         {
           title: '锁定分析对象',
           content: `当前有 ${underperforming.length} 个项目处于待优化区（AI 投入高于中位数，但人效低于中位数）。优先分析 AI 投入最大的项目。`,
-          data_points: underperforming.slice(0, 3).map(p => ({ label: p.name, value: `人效 ${formatProductivity(p.productivity)}`, trend: 'down' as const })),
+          data_points: relatedProjects.slice(0, 3).map(p => ({ label: p.name, value: `人效 ${formatProductivity(p.productivity)}`, trend: 'down' as const })),
           chart_type: 'comparison_bar',
         },
         {
@@ -171,14 +175,17 @@ export function buildLocalReasoning(
   }
 
   // Default: high potential scenario
-  const target = highPotential[0]
+  const target = preferredProject || highPotential[0]
+  const relatedProjects = preferredProject
+    ? [preferredProject, ...highPotential.filter(p => p.id !== preferredProject.id)].slice(0, 5)
+    : highPotential.slice(0, 5)
   return {
-    relatedProjects: highPotential.slice(0, 5),
+    relatedProjects,
     steps: [
       {
         title: '锁定分析对象',
         content: `${highPotential.length} 个项目位于高潜力区（人效高但 AI 渗透低），加码 AI 投入预期可获得高回报。`,
-        data_points: highPotential.slice(0, 3).map(p => ({ label: p.name, value: `人效 ${formatProductivity(p.productivity)}`, trend: 'up' as const })),
+        data_points: relatedProjects.slice(0, 3).map(p => ({ label: p.name, value: `人效 ${formatProductivity(p.productivity)}`, trend: 'up' as const })),
         chart_type: 'comparison_bar',
       },
       {
