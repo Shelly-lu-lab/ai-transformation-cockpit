@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { ChatPanel } from '@/components/ChatPanel'
 import { ReasoningSteps, ReasoningStep, buildLocalReasoning } from '@/components/ReasoningSteps'
 import { useAppData } from '@/lib/DataProvider'
@@ -28,6 +28,7 @@ export default function DecisionPage() {
   const [chatLoading, setChatLoading] = useState(false)
   const [reasoning, setReasoning] = useState<ReasoningResult | null>(null)
   const [activeScenario, setActiveScenario] = useState<string>('')
+  const resultRef = useRef<HTMLElement>(null)
 
   const selected = useMemo(() => pickProjects(projects), [projects])
 
@@ -40,13 +41,21 @@ export default function DecisionPage() {
 
   async function handleSend(message: string) {
     setActiveScenario(message)
-    setMessages(prev => [...prev, { role: 'user' as const, content: message }])
+    setMessages([{ role: 'user' as const, content: message }])
     setChatLoading(true)
     setReasoning(null)
 
-    // 先用本地规则生成结构化推演（确保一定有好的展示）
+    // 用本地规则生成结构化推演（确保一定有好的展示，不依赖 AI）
     const localResult = buildLocalReasoning(message, projects)
 
+    // 先立刻展示本地结果
+    setReasoning(localResult)
+    setChatLoading(false)
+    setMessages(prev => [...prev, { role: 'assistant' as const, content: '推演完成。' }])
+    // 自动滚动到结果区
+    setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
+
+    // 然后异步尝试获取 AI 补充分析
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -54,20 +63,13 @@ export default function DecisionPage() {
         body: JSON.stringify({ message, page: 'decision' }),
       })
       const data = await res.json()
-
-      // AI 回答作为 summary 补充到本地结构化推演中
       const aiSummary = data.answer || ''
-      setReasoning({
-        ...localResult,
-        summary: aiSummary.length > 50 ? aiSummary : undefined,
-      })
-      setMessages(prev => [...prev, { role: 'assistant' as const, content: '推演完成，请查看下方分析结果。' }])
+      if (aiSummary.length > 50) {
+        setReasoning(prev => prev ? { ...prev, summary: aiSummary } : prev)
+      }
     } catch {
-      // AI 失败时直接用本地结构化结果
-      setReasoning(localResult)
-      setMessages(prev => [...prev, { role: 'assistant' as const, content: '已使用本地数据完成推演。' }])
+      // AI 失败不影响已展示的结果
     }
-    setChatLoading(false)
   }
 
   return (
@@ -103,7 +105,7 @@ export default function DecisionPage() {
       </section>
 
       {/* 推演结果 */}
-      <section className="rounded-lg border border-zinc-700/50 bg-zinc-900 p-5">
+      <section ref={resultRef} className="rounded-lg border border-zinc-700/50 bg-zinc-900 p-5">
         {chatLoading ? (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
