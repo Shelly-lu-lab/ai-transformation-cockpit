@@ -63,6 +63,23 @@ export interface TalentRecord {
   active_days: number
   primary_model: string | null
   tenure_years: number
+  // 第三轮预处理新增（可选，缺失时相关分析降级）
+  ai_cost_cny?: number          // 个人月 AI 成本（已缩放）
+  ai_cost_dept_share?: number   // 占所属部门 AI 成本比例 0-1
+  cr_source?: 'real' | 'proxy'  // CR 来源：真实 / 同职级中位数代理
+}
+
+// 序列×部门矩阵（第三轮预处理新增文件 role_dept_matrix.json）
+export interface RoleDeptCell {
+  role: string                  // 通用序列名（已脱敏）
+  project_id: string
+  headcount: number
+  ai_cost: number               // 已缩放
+  per_capita: number
+  coverage_rate: number         // 0-1，同部门同序列口径
+  avg_active_days: number
+  model_mix?: Record<string, number>  // 该格的模型成本占比
+  sample_size: number
 }
 
 export type Quadrant = 'amplifier' | 'underperforming' | 'high_potential' | 'low_base'
