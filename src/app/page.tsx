@@ -50,7 +50,7 @@ export default function Home() {
     steps.forEach((_, index) => {
       window.setTimeout(() => setActiveStep(index), (index + 1) * 600)
     })
-    window.setTimeout(() => router.push('/overview'), (steps.length + 1) * 600)
+    window.setTimeout(() => router.push('/verdict'), (steps.length + 1) * 600)
   }
 
   return (

@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { Project, MonthlyRecord, TalentRecord, ProjectWithMetrics, CompanySummary } from './types'
+import { Project, MonthlyRecord, TalentRecord, ProjectWithMetrics, CompanySummary, RoleDeptCell } from './types'
 import { enrichProjects, getCompanySummary } from './calculations'
 import { clearUploadedDataset, readUploadedDataset, UPLOADED_DATASET_EVENT } from './uploadData'
 
@@ -9,6 +9,7 @@ interface AppData {
   projects: ProjectWithMetrics[]
   monthlyTrend: MonthlyRecord[]
   talentRisk: TalentRecord[]
+  roleMatrix: RoleDeptCell[] | null
   companySummary: CompanySummary
   isLoading: boolean
   error: string | null
@@ -21,6 +22,7 @@ const DataContext = createContext<AppData>({
   projects: [],
   monthlyTrend: [],
   talentRisk: [],
+  roleMatrix: null,
   companySummary: {
     total_headcount: 0, total_labor_cost: 0, total_ai_cost: 0,
     total_revenue: 0, total_profit: 0, ai_to_labor_ratio: 0,
@@ -46,6 +48,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     projects: [],
     monthlyTrend: [],
     talentRisk: [],
+    roleMatrix: null,
     companySummary: emptyCompanySummary,
     isLoading: true,
     error: null,
@@ -66,6 +69,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             projects,
             monthlyTrend: uploadedDataset.monthlyTrend,
             talentRisk: uploadedDataset.talentRisk,
+            roleMatrix: null,
             companySummary,
             isLoading: false,
             error: null,
@@ -75,10 +79,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
           return
         }
 
-        const [projRes, trendRes, riskRes] = await Promise.all([
+        const [projRes, trendRes, riskRes, matrixRes] = await Promise.all([
           fetch('/data/demo/projects.json'),
           fetch('/data/demo/monthly_trend.json'),
           fetch('/data/demo/talent_risk.json'),
+          fetch('/data/demo/role_dept_matrix.json'),
         ])
 
         if (!projRes.ok || !trendRes.ok || !riskRes.ok) {
@@ -88,6 +93,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const rawProjects: Project[] = await projRes.json()
         const monthlyTrend: MonthlyRecord[] = await trendRes.json()
         const talentRisk: TalentRecord[] = await riskRes.json()
+        const roleMatrix: RoleDeptCell[] | null = matrixRes.ok ? await matrixRes.json() : null
 
         const projects = enrichProjects(rawProjects)
         const companySummary = getCompanySummary(projects)
@@ -97,6 +103,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           projects,
           monthlyTrend,
           talentRisk,
+          roleMatrix,
           companySummary,
           isLoading: false,
           error: null,
