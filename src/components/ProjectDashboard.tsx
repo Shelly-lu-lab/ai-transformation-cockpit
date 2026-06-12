@@ -35,7 +35,7 @@ export function ProjectDashboard({ project, trend, talents }: ProjectDashboardPr
   // 1. 成本构成环形图
   const costPieOption = {
     backgroundColor: 'transparent',
-    tooltip: { trigger: 'item', backgroundColor: '#27272a', borderColor: '#3f3f46', textStyle: { color: '#fafafa' } },
+    tooltip: { trigger: 'item', backgroundColor: 'rgba(63,63,70,0.45)', borderColor: '#3f3f46', textStyle: { color: '#fafafa' } },
     legend: { bottom: 0, textStyle: { color: '#a1a1aa', fontSize: 11 } },
     series: [{
       type: 'pie',
@@ -52,7 +52,7 @@ export function ProjectDashboard({ project, trend, talents }: ProjectDashboardPr
   // 2. AI 用户分层柱状图
   const tierBarOption = {
     backgroundColor: 'transparent',
-    tooltip: { trigger: 'axis', backgroundColor: '#27272a', borderColor: '#3f3f46', textStyle: { color: '#fafafa' } },
+    tooltip: { trigger: 'axis', backgroundColor: 'rgba(63,63,70,0.45)', borderColor: '#3f3f46', textStyle: { color: '#fafafa' } },
     grid: { top: 8, right: 10, bottom: 24, left: 50 },
     xAxis: {
       type: 'category',
@@ -63,7 +63,7 @@ export function ProjectDashboard({ project, trend, talents }: ProjectDashboardPr
     yAxis: {
       type: 'value',
       axisLabel: { color: '#a1a1aa', fontSize: 10 },
-      splitLine: { lineStyle: { color: '#27272a' } },
+      splitLine: { lineStyle: { color: 'rgba(63,63,70,0.45)' } },
       axisLine: { lineStyle: { color: '#3f3f46' } },
     },
     series: [{
@@ -81,12 +81,12 @@ export function ProjectDashboard({ project, trend, talents }: ProjectDashboardPr
   const modelEntries = Object.entries(project.ai_model_mix).filter(([, v]) => v > 0.01).sort((a, b) => b[1] - a[1])
   const modelBarOption = {
     backgroundColor: 'transparent',
-    tooltip: { trigger: 'axis', backgroundColor: '#27272a', borderColor: '#3f3f46', textStyle: { color: '#fafafa' }, formatter: (params: unknown) => {
+    tooltip: { trigger: 'axis', backgroundColor: 'rgba(63,63,70,0.45)', borderColor: '#3f3f46', textStyle: { color: '#fafafa' }, formatter: (params: unknown) => {
       const p = (params as Array<{name: string; value: number}>)[0]
       return `${p.name}: ${(p.value * 100).toFixed(1)}%`
     }},
     grid: { top: 4, right: 30, bottom: 4, left: 90 },
-    xAxis: { type: 'value', max: 1, axisLabel: { show: false }, splitLine: { lineStyle: { color: '#27272a' } }, axisLine: { show: false } },
+    xAxis: { type: 'value', max: 1, axisLabel: { show: false }, splitLine: { lineStyle: { color: 'rgba(63,63,70,0.45)' } }, axisLine: { show: false } },
     yAxis: {
       type: 'category',
       data: modelEntries.map(([k]) => k),
@@ -110,7 +110,7 @@ export function ProjectDashboard({ project, trend, talents }: ProjectDashboardPr
   const trendOption = {
     backgroundColor: 'transparent',
     grid: { top: 24, right: 50, bottom: 28, left: 50 },
-    tooltip: { trigger: 'axis', backgroundColor: '#27272a', borderColor: '#3f3f46', textStyle: { color: '#fafafa' } },
+    tooltip: { trigger: 'axis', backgroundColor: 'rgba(63,63,70,0.45)', borderColor: '#3f3f46', textStyle: { color: '#fafafa' } },
     legend: { top: 0, textStyle: { color: '#a1a1aa', fontSize: 10 } },
     xAxis: {
       type: 'category',
@@ -119,7 +119,7 @@ export function ProjectDashboard({ project, trend, talents }: ProjectDashboardPr
       axisLabel: { color: '#a1a1aa', fontSize: 10 },
     },
     yAxis: [
-      { type: 'value', name: 'AI累计', axisLabel: { color: '#a1a1aa', fontSize: 10, formatter: (v: number) => formatWan(v) }, splitLine: { lineStyle: { color: '#27272a' } }, axisLine: { lineStyle: { color: '#3f3f46' } } },
+      { type: 'value', name: 'AI累计', axisLabel: { color: '#a1a1aa', fontSize: 10, formatter: (v: number) => formatWan(v) }, splitLine: { lineStyle: { color: 'rgba(63,63,70,0.45)' } }, axisLine: { lineStyle: { color: '#3f3f46' } } },
       { type: 'value', name: '人效', axisLabel: { color: '#a1a1aa', fontSize: 10 }, splitLine: { show: false }, axisLine: { lineStyle: { color: '#3f3f46' } } },
     ],
     series: [
@@ -131,7 +131,7 @@ export function ProjectDashboard({ project, trend, talents }: ProjectDashboardPr
   // 5. 风险分布环形
   const riskPieOption = {
     backgroundColor: 'transparent',
-    tooltip: { trigger: 'item', backgroundColor: '#27272a', borderColor: '#3f3f46', textStyle: { color: '#fafafa' } },
+    tooltip: { trigger: 'item', backgroundColor: 'rgba(63,63,70,0.45)', borderColor: '#3f3f46', textStyle: { color: '#fafafa' } },
     series: [{
       type: 'pie',
       radius: ['50%', '75%'],

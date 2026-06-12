@@ -60,7 +60,7 @@ function verdictContext(): string {
 
   return `【北极星】人效 ${vi.northStar.productivity.toFixed(2)}｜AI/人力 ${(vi.northStar.aiToLaborRatio * 100).toFixed(1)}%｜关键人才在险 ${vi.northStar.criticalTalentCount} 人
 
-【钱】放大器已验证 ${vi.moneyDim.amplifierConfirmed} 个（${confirmed.map(p => `${p.name} 人效趋势+${(p.monthlyRate * 100).toFixed(1)}%/月`).join('、') || '无'}）；未验证放大器 ${vi.moneyDim.amplifierUnproven} 个（高投入高人效但趋势未上行）；待优化区 ${vi.moneyDim.underperforming} 个、月烧 ${fmtWan(vi.moneyDim.underperformingAiCost)}（Top: ${topUnder.map(p => `${p.name}(AI强度${(p.ai_intensity * 100).toFixed(0)}%人效${p.productivity.toFixed(2)})`).join('、')}）；人效趋势↑项目 ${vi.moneyDim.trendUpCount}/27
+【钱】放大器已验证 ${vi.moneyDim.amplifierConfirmed} 个（${confirmed.map(p => `${p.name} 人效趋势+${(p.monthlyRate * 100).toFixed(1)}%/月`).join('、') || '无'}）；未验证放大器 ${vi.moneyDim.amplifierUnproven} 个（高投入高人效但趋势未上行）；待优化区 ${vi.moneyDim.underperforming} 个、AI 月投入 ${fmtWan(vi.moneyDim.underperformingAiCost)}（Top: ${topUnder.map(p => `${p.name}(AI强度${(p.ai_intensity * 100).toFixed(0)}%人效${p.productivity.toFixed(2)})`).join('、')}）；人效趋势↑项目 ${vi.moneyDim.trendUpCount}/${projects.length}
 
 【效率】Power ${vi.efficiencyDim.powerCount} 人占个人AI成本 ${(vi.efficiencyDim.powerCostShare * 100).toFixed(0)}%；活跃<12天的项目 ${vi.efficiencyDim.lowActiveProjects} 个；疑似模型错配 ${mm.length} 个（${mm.slice(0, 3).map(m => `${m.name}:${m.dominantRole}主导但高价模型${(m.expensiveShare * 100).toFixed(0)}%`).join('、')}）；同岗位跨部门差距 Top（${div.map(d => `${d.role} ${d.gapMultiple}×`).join('、')}）
 

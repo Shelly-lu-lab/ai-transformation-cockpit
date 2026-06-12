@@ -62,7 +62,7 @@ export function ReasoningSteps({ steps, relatedProjects }: ReasoningStepsProps) 
                 option={{
                   backgroundColor: 'transparent',
                   grid: { top: 8, right: 10, bottom: 24, left: 80 },
-                  xAxis: { type: 'value', axisLabel: { color: '#a1a1aa', fontSize: 10 }, splitLine: { lineStyle: { color: '#27272a' } }, axisLine: { show: false } },
+                  xAxis: { type: 'value', axisLabel: { color: '#a1a1aa', fontSize: 10 }, splitLine: { lineStyle: { color: 'rgba(63,63,70,0.45)' } }, axisLine: { show: false } },
                   yAxis: {
                     type: 'category',
                     data: relatedProjects.slice(0, 5).map(p => p.name),

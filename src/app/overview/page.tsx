@@ -170,7 +170,7 @@ export default function OverviewPage() {
     },
     tooltip: {
       trigger: 'item',
-      backgroundColor: '#27272a',
+      backgroundColor: 'rgba(63,63,70,0.45)',
       borderColor: '#3f3f46',
       textStyle: { color: '#fafafa' },
 	      formatter: (params: unknown) => {
@@ -192,7 +192,7 @@ export default function OverviewPage() {
       type: 'log',
       min: Math.max(1, Math.min(...projects.map(p => p.labor_cost + p.ai_cost)) * 0.7),
       axisLine: { lineStyle: { color: '#3f3f46' } },
-      splitLine: { lineStyle: { color: '#27272a' } },
+      splitLine: { lineStyle: { color: 'rgba(63,63,70,0.45)' } },
       axisLabel: { color: '#a1a1aa', formatter: (value: number) => formatWan(value) },
       nameTextStyle: { color: '#a1a1aa' },
     },
@@ -201,7 +201,7 @@ export default function OverviewPage() {
       type: 'log',
       min: Math.max(1, Math.min(...projects.map(p => p.profit)) * 0.7),
       axisLine: { lineStyle: { color: '#3f3f46' } },
-      splitLine: { lineStyle: { color: '#27272a' } },
+      splitLine: { lineStyle: { color: 'rgba(63,63,70,0.45)' } },
       axisLabel: { color: '#a1a1aa', formatter: (value: number) => formatWan(value) },
       nameTextStyle: { color: '#a1a1aa' },
     },

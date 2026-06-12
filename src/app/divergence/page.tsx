@@ -1,285 +1,247 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppData } from '@/lib/DataProvider'
-import { getLeverageMatrix, getRoleDeptDivergence, LeveragePoint } from '@/lib/analytics'
-import { formatWan, formatProductivity, formatRatio } from '@/lib/format'
-import { Card, SectionHeader, FactTag, ChapterTransition, Skeleton, SimulatedTag } from '@/components/ui'
+import {
+  getDependencyFragility,
+  getLeverageMatrix,
+  getModelMismatch,
+  getPricingMismatch,
+  LeveragePoint,
+} from '@/lib/analytics'
+import { formatProductivity, formatRatio, formatWan } from '@/lib/format'
+import { Card, SectionHeader, FactTag, JudgmentTag, ChapterTransition, Skeleton, SimulatedTag, CockpitTopbar, AiBriefing } from '@/components/ui'
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false })
 
 const verdictMeta: Record<LeveragePoint['verdict'], { label: string; color: string }> = {
-  amplifier_confirmed: { label: '放大器·已验证', color: '#10b981' },
-  amplifier_unproven: { label: '放大器·未验证', color: '#67e8f9' },
+  amplifier_confirmed: { label: '放大器·已验证', color: '#22d3ee' },
+  amplifier_unproven: { label: '放大器·待验证', color: '#67e8f9' },
   underperforming: { label: '待优化区', color: '#ef4444' },
   high_potential: { label: '高潜力区', color: '#3b82f6' },
   low_base: { label: '基础区', color: '#71717a' },
 }
 
-type Tab = 'tiers' | 'types' | 'roles'
+const models = ['Claude Opus', 'Claude Sonnet', 'GPT', 'Cursor/IDE', 'Mivo', '其他']
+const modelColors = ['#ef4444', '#22d3ee', '#3b82f6', '#8b5cf6', '#f59e0b', '#71717a']
 
 export default function DivergencePage() {
   const router = useRouter()
   const { projects, monthlyTrend, talentRisk, roleMatrix, isLoading } = useAppData()
-  const [tab, setTab] = useState<Tab>('roles')
 
-  const matrix = useMemo(
+  const leverage = useMemo(
     () => (projects.length > 0 ? getLeverageMatrix(projects, monthlyTrend) : null),
     [projects, monthlyTrend]
   )
-  const divergence = useMemo(() => getRoleDeptDivergence(roleMatrix), [roleMatrix])
+  const mismatch = useMemo(() => getModelMismatch(projects), [projects])
+  const pricing = useMemo(() => getPricingMismatch(talentRisk), [talentRisk])
+  const fragility = useMemo(() => getDependencyFragility(talentRisk, projects), [talentRisk, projects])
+  const projectName = useMemo(() => new Map(projects.map(project => [project.id, project.name])), [projects])
 
-  const tierStats = useMemo(() => {
-    const tiers = { power: 0, regular: 0, light: 0 }
-    let powerCost = 0, totalCost = 0
-    talentRisk.forEach(t => {
-      tiers[t.tier] += 1
-      const c = t.ai_cost_cny ?? 0
-      totalCost += c
-      if (t.tier === 'power') powerCost += c
-    })
-    return { tiers, powerCostShare: totalCost > 0 ? powerCost / totalCost : 0, total: talentRisk.length }
-  }, [talentRisk])
-
-  const chartOption = useMemo(() => {
-    if (!matrix) return {}
+  const leverageOption = useMemo(() => {
+    if (!leverage) return {}
     const groups = new Map<LeveragePoint['verdict'], LeveragePoint[]>()
-    matrix.points.forEach(p => {
-      const list = groups.get(p.verdict) || []
-      list.push(p)
-      groups.set(p.verdict, list)
-    })
-    const maxHC = Math.max(...matrix.points.map(p => p.headcount), 1)
-    const minX = Math.max(0.004, Math.min(...matrix.points.map(p => p.ai_intensity)) * 0.7)
-
+    leverage.points.forEach(point => groups.set(point.verdict, [...(groups.get(point.verdict) || []), point]))
+    const maxHC = Math.max(...leverage.points.map(point => point.headcount), 1)
     return {
       backgroundColor: 'transparent',
-      grid: { top: 30, right: 40, bottom: 60, left: 60 },
-      legend: { bottom: 6, textStyle: { color: '#a1a1aa', fontSize: 11 }, itemGap: 16 },
+      grid: { top: 28, right: 28, bottom: 46, left: 52 },
       tooltip: {
-        backgroundColor: '#18181b', borderColor: '#3f3f46', textStyle: { color: '#fafafa', fontSize: 12 },
+        backgroundColor: '#0f172a',
+        borderColor: '#334155',
+        textStyle: { color: '#fafafa' },
         formatter: (params: { data: (number | string)[] }) => {
-          const d = params.data
-          const arrow = d[6] === 'up' ? '↑ 上行' : d[6] === 'down' ? '↓ 下行' : '→ 平稳'
-          return `<b>${d[3]}</b><br/>人效 ${formatProductivity(Number(d[1]))} · ${arrow}<br/>AI 强度 ${formatRatio(Number(d[0]))} · ${d[2]} 人`
+          const data = params.data
+          return `<b>${data[3]}</b><br/>人效 ${formatProductivity(Number(data[1]))}<br/>AI强度 ${formatRatio(Number(data[0]))}<br/>人数 ${data[2]}`
         },
       },
-      xAxis: {
-        name: 'AI 强度（log）', type: 'log', min: minX,
-        nameTextStyle: { color: '#71717a', fontSize: 11 },
-        axisLine: { lineStyle: { color: '#3f3f46' } },
-        splitLine: { lineStyle: { color: '#1f1f23' } },
-        axisLabel: { color: '#71717a', fontSize: 10, formatter: (v: number) => formatRatio(v) },
-      },
-      yAxis: {
-        name: '人效', nameTextStyle: { color: '#71717a', fontSize: 11 },
-        axisLine: { lineStyle: { color: '#3f3f46' } },
-        splitLine: { lineStyle: { color: '#1f1f23' } },
-        axisLabel: { color: '#71717a', fontSize: 10 },
-      },
-      series: [...groups.entries()].map(([verdict, pts]) => ({
+      xAxis: { type: 'log', name: 'AI强度', axisLabel: { color: '#94a3b8', formatter: (v: number) => formatRatio(v) }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.14)' } } },
+      yAxis: { name: '人效', axisLabel: { color: '#94a3b8' }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.14)' } } },
+      series: [...groups.entries()].map(([verdict, points]) => ({
         name: verdictMeta[verdict].label,
         type: 'scatter',
-        itemStyle: { color: verdictMeta[verdict].color, opacity: 0.88 },
-        symbolSize: (d: number[]) => Math.max(14, Math.min(56, 14 + (Number(d[2]) / maxHC) * 42)),
-        emphasis: { scale: 1.15, label: { show: true, formatter: '{@[3]}', color: '#fafafa', fontSize: 11 } },
-        data: pts.map(p => [p.ai_intensity, p.productivity, p.headcount, p.name, p.project_id, p.verdict, p.trend]),
+        data: points.map(point => [point.ai_intensity, point.productivity, point.headcount, point.name, point.project_id, point.trend]),
+        symbolSize: (value: number[]) => Math.max(12, Math.min(52, 12 + (value[2] / maxHC) * 42)),
+        itemStyle: { color: verdictMeta[verdict].color, opacity: 0.9 },
+        label: { show: false },
+        emphasis: { label: { show: true, formatter: '{@[3]}', color: '#fafafa' } },
         markLine: verdict === 'underperforming' ? {
-          silent: true, symbol: 'none',
-          lineStyle: { color: '#3f3f46', type: 'dashed', width: 1 },
+          silent: true,
+          symbol: 'none',
+          lineStyle: { color: '#475569', type: 'dashed' },
           label: { show: false },
-          data: [{ xAxis: matrix.medianIntensity }, { yAxis: matrix.medianProductivity }],
+          data: [{ xAxis: leverage.medianIntensity }, { yAxis: leverage.medianProductivity }],
         } : undefined,
       })),
     }
-  }, [matrix])
+  }, [leverage])
 
-  const typeGroups = useMemo(() => {
-    if (!matrix) return []
-    const order: LeveragePoint['verdict'][] = ['amplifier_confirmed', 'amplifier_unproven', 'high_potential', 'underperforming', 'low_base']
-    return order.map(v => ({ verdict: v, ...verdictMeta[v], items: matrix.points.filter(p => p.verdict === v) }))
-  }, [matrix])
+  const heatmapOption = useMemo(() => {
+    const cells = roleMatrix || []
+    const roles = Array.from(new Set(cells.map(cell => cell.role)))
+    const departments = Array.from(new Set(cells.map(cell => projectName.get(cell.project_id) || cell.project_id)))
+    const max = Math.max(...cells.map(cell => cell.per_capita), 1)
+    return {
+      backgroundColor: 'transparent',
+      grid: { top: 28, right: 10, bottom: 70, left: 70 },
+      tooltip: {
+        backgroundColor: '#0f172a',
+        borderColor: '#334155',
+        textStyle: { color: '#fafafa' },
+        formatter: (params: { data: [number, number, number, number, number, string] }) => {
+          const [x, y, value, headcount, active, projectId] = params.data
+          return `<b>${departments[x]} · ${roles[y]}</b><br/>人均AI ${formatWan(value)}<br/>人数 ${headcount}<br/>活跃 ${active} 天<br/>${projectId}`
+        },
+      },
+      xAxis: { type: 'category', data: departments, axisLabel: { color: '#94a3b8', rotate: 55, fontSize: 10 } },
+      yAxis: { type: 'category', data: roles, axisLabel: { color: '#94a3b8', fontSize: 11 } },
+      visualMap: { min: 0, max, show: false, inRange: { color: ['#0f172a', '#164e63', '#22d3ee', '#f59e0b'] } },
+      series: [{
+        type: 'heatmap',
+        data: cells.flatMap(cell => {
+          const x = departments.indexOf(projectName.get(cell.project_id) || cell.project_id)
+          const y = roles.indexOf(cell.role)
+          return x >= 0 && y >= 0 ? [[x, y, cell.per_capita, cell.headcount, cell.avg_active_days, cell.project_id]] : []
+        }),
+      }],
+    }
+  }, [roleMatrix, projectName])
 
-  const underBurn = useMemo(() =>
-    projects.filter(p => p.quadrant === 'underperforming').reduce((s, p) => s + p.ai_cost, 0),
-  [projects])
+  const stackedOption = useMemo(() => {
+    const cells = roleMatrix || []
+    const roles = Array.from(new Set(cells.map(cell => cell.role)))
+    const roleMix = roles.map(role => {
+      const roleCells = cells.filter(cell => cell.role === role)
+      const totals = Object.fromEntries(models.map(model => [model, 0]))
+      let weight = 0
+      roleCells.forEach(cell => {
+        const cellWeight = Math.max(cell.ai_cost, 1)
+        weight += cellWeight
+        models.forEach(model => { totals[model] += (cell.model_mix?.[model] || 0) * cellWeight })
+      })
+      return Object.fromEntries(models.map(model => [model, weight > 0 ? totals[model] / weight : 0]))
+    })
+    return {
+      backgroundColor: 'transparent',
+      grid: { top: 26, right: 12, bottom: 45, left: 50 },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: '#0f172a', borderColor: '#334155', textStyle: { color: '#fafafa' } },
+      legend: { bottom: 0, textStyle: { color: '#94a3b8', fontSize: 10 } },
+      xAxis: { type: 'category', data: roles, axisLabel: { color: '#94a3b8', rotate: 30 } },
+      yAxis: { type: 'value', max: 1, axisLabel: { color: '#94a3b8', formatter: (v: number) => `${Math.round(v * 100)}%` }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.14)' } } },
+      series: models.map((model, index) => ({
+        name: model,
+        type: 'bar',
+        stack: 'model',
+        data: roleMix.map(mix => Number(mix[model] || 0)),
+        itemStyle: { color: modelColors[index] },
+      })),
+    }
+  }, [roleMatrix])
+
+  const pricingOption = useMemo(() => {
+    const rows = [
+      ...pricing.highPaidLowUse.slice(0, 80).map(talent => [talent.ai_cost_ratio, talent.cr_value, 18, talent.id, '高薪低用']),
+      ...pricing.highUseLowPaid.slice(0, 80).map(talent => [talent.ai_cost_ratio, talent.cr_value, 28, talent.id, '高用低薪']),
+    ]
+    return {
+      backgroundColor: 'transparent',
+      grid: { top: 24, right: 24, bottom: 42, left: 50 },
+      tooltip: { backgroundColor: '#0f172a', borderColor: '#334155', textStyle: { color: '#fafafa' }, formatter: (params: { data: (number | string)[] }) => `<b>${params.data[3]}</b><br/>${params.data[4]}<br/>AI/薪酬 ${formatRatio(Number(params.data[0]))}<br/>CR ${Number(params.data[1]).toFixed(2)}` },
+      xAxis: { name: 'AI/薪酬', axisLabel: { color: '#94a3b8', formatter: (v: number) => formatRatio(v) }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.14)' } } },
+      yAxis: { name: '代理CR', min: 0.5, max: 1.7, axisLabel: { color: '#94a3b8' }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.14)' } } },
+      series: [{ type: 'scatter', data: rows, symbolSize: (value: number[]) => value[2], itemStyle: { color: (params: { data: (number | string)[] }) => params.data[4] === '高用低薪' ? '#ef4444' : '#f59e0b', opacity: 0.78 } }],
+    }
+  }, [pricing])
+
+  const fragilityOption = useMemo(() => ({
+    backgroundColor: 'transparent',
+    grid: { top: 24, right: 24, bottom: 42, left: 50 },
+    tooltip: { backgroundColor: '#0f172a', borderColor: '#334155', textStyle: { color: '#fafafa' }, formatter: (params: { data: (number | string | boolean)[] }) => `<b>${params.data[3]}</b><br/>部门占比 ${formatRatio(Number(params.data[0]))}<br/>CR ${Number(params.data[1]).toFixed(2)}<br/>${projectName.get(String(params.data[4])) || params.data[4]}` },
+    xAxis: { name: '个人占部门AI比', max: 1, axisLabel: { color: '#94a3b8', formatter: (v: number) => formatRatio(v) }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.14)' } } },
+    yAxis: { name: '代理CR', min: 0.5, max: 1.7, axisLabel: { color: '#94a3b8' }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.14)' } } },
+    series: [{
+      type: 'scatter',
+      data: fragility.points.slice(0, 360).map(point => [point.deptShare, point.cr, point.tier === 'power' ? 18 : 11, point.id, point.project_id, point.fragile]),
+      symbolSize: (value: number[]) => value[2],
+      itemStyle: { color: (params: { data: (number | string | boolean)[] }) => params.data[5] ? '#ef4444' : '#22d3ee', opacity: 0.72 },
+      markArea: { silent: true, itemStyle: { color: 'rgba(239,68,68,0.10)' }, data: [[{ xAxis: 0.1, yAxis: 0.5 }, { xAxis: 1, yAxis: 0.9 }]] },
+    }],
+  }), [fragility, projectName])
 
   return (
-    <div className="mx-auto max-w-[1280px] space-y-8 px-6 pb-24 pt-8">
+    <div className="mx-auto max-w-[1440px] space-y-6 px-6 pb-24 pt-8">
+      <CockpitTopbar />
       <header>
-        <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-500">02 · 分化地图</div>
-        <h1 className="mt-2 text-[28px] font-semibold leading-tight text-zinc-50">钱花在哪成了，哪没成？</h1>
-        <p className="mt-1.5 text-sm text-zinc-500">
-          同样投 AI，结果天差地别。位置 = 投入 × 人效，箭头 = 近 6 个月人效趋势——绝对值高不算赢，趋势上行才是真放大。
-        </p>
+        <div className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">02 · 分化地图</div>
+        <h1 className="mt-2 text-[30px] font-semibold leading-tight text-zinc-50">钱花在哪成了，哪没成？</h1>
+        <p className="mt-1.5 text-sm text-zinc-500">以五张交叉图定位 AI 投入、人效、岗位、模型与人才定价之间的分化。</p>
       </header>
+      <AiBriefing title="分化要闻" prompt="基于分化地图，指出最重要的业务单元分化信号" />
 
-      {/* 主图：杠杆有效性矩阵 */}
-      <Card className="p-5">
-        <SectionHeader
-          title="AI 杠杆有效性矩阵"
-          caption="气泡大小 = 团队人数 · 虚线 = 全公司中位数 · 点击气泡进入根因诊断"
-          right={<div className="flex items-center gap-2"><FactTag /><SimulatedTag /></div>}
-        />
-        {isLoading || !matrix ? (
-          <Skeleton className="mt-4 h-[460px]" />
-        ) : (
-          <ReactECharts
-            option={chartOption}
-            style={{ height: 460 }}
-            onEvents={{
-              click: (params: { data?: (number | string)[] }) => {
+      {isLoading || !leverage ? (
+        <Skeleton className="h-[620px]" />
+      ) : (
+        <>
+          <section className="grid grid-cols-12 gap-5">
+            <Card className="col-span-5 p-5">
+              <SectionHeader title="杠杆矩阵" caption="X=AI强度，Y=人效，气泡=人数" right={<FactTag />} />
+              <ReactECharts option={leverageOption} style={{ height: 420 }} onEvents={{ click: (params: { data?: (number | string)[] }) => {
                 const id = params.data?.[4]
                 if (typeof id === 'string') router.push(`/attribution?id=${id}`)
-              },
-            }}
-          />
-        )}
-        {matrix && (
-          <p className="mt-2 text-xs leading-5 text-zinc-500">
-            <FactTag /> <span className="ml-1.5">
-              已验证放大器仅 {matrix.counts.amplifier_confirmed} 个；{matrix.counts.amplifier_unproven} 个高投入高人效项目趋势未上行（尚不能归功于 AI）；
-              {matrix.counts.underperforming} 个待优化项目月烧 {formatWan(underBurn)}；{matrix.counts.high_potential} 个高潜力项目人效好但 AI 渗透低——最该加码的方向。
-            </span>
-          </p>
-        )}
-      </Card>
+              } }} />
+              <Insight text="高投入不等于有效，真正值得复制的是高人效且趋势上行的放大器。" />
+            </Card>
+            <Card className="col-span-4 p-5">
+              <SectionHeader title="岗位×部门热力图" caption="颜色=同岗位人均 AI 成本" right={<FactTag />} />
+              <ReactECharts option={heatmapOption} style={{ height: 420 }} />
+              <Insight text="同岗位差距越大，越说明内部存在可迁移的方法样本。" />
+            </Card>
+            <Card className="col-span-3 p-5">
+              <SectionHeader title="模型×角色错配" caption="角色维度模型成本结构" right={<FactTag />} />
+              <ReactECharts option={stackedOption} style={{ height: 420 }} />
+              <Insight text={`${mismatch.filter(item => item.flag === 'mismatch_suspect').length} 个项目存在非技术主导但高价模型占比偏高的疑似错配。`} />
+            </Card>
+          </section>
 
-      {/* 三切面 */}
-      <div>
-        <div className="flex items-center gap-1">
-          {([
-            ['roles', '同岗位跨部门差距'],
-            ['tiers', '用户分层'],
-            ['types', '项目分型清单'],
-          ] as [Tab, string][]).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setTab(key)}
-              className={`rounded-lg px-4 py-2 text-sm transition-colors ${tab === key ? 'bg-blue-500/15 text-blue-300' : 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300'}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+          <section className="grid grid-cols-2 gap-5">
+            <Card className="p-5">
+              <SectionHeader title="薪酬倒挂 Bubble" caption="高薪低用 / 高用低薪两类人才定价错配" right={<SimulatedTag />} />
+              <ReactECharts option={pricingOption} style={{ height: 360 }} />
+              <Insight text={`CR 为 ${pricing.crSource === 'proxy' ? '代理' : '真实'}口径，高用低薪是预算调整时最需要保护的人群。`} />
+            </Card>
+            <Card className="p-5">
+              <SectionHeader title="个人依赖 × CR 脆弱扫描" caption="右下角=高依赖且薪酬倒挂" right={<FactTag />} />
+              <ReactECharts option={fragilityOption} style={{ height: 360 }} />
+              <Insight text={`${fragility.fragileCount} 名使用者落入高依赖低 CR 警戒区，需进入保人名单校验。`} />
+            </Card>
+          </section>
 
-        <Card className="mt-3 p-5">
-          {tab === 'roles' && (
-            <div>
-              <SectionHeader
-                title="同一个岗位，不同部门用 AI 的深度差多少倍？"
-                caption="人均 AI 成本极值倍数（已剔除小样本与极端值）——差距大 = 内部存在可学习的方法样本"
-                right={<FactTag />}
-              />
-              {divergence.length === 0 ? (
-                <p className="mt-4 text-sm text-zinc-500">上传数据模式暂不支持该分析（缺少序列×部门矩阵）。</p>
-              ) : (
-                <div className="mt-4 space-y-2.5">
-                  {divergence.slice(0, 6).map(d => {
-                    const nameOf = (pid: string) => projects.find(p => p.id === pid)?.name || pid
-                    return (
-                      <div key={d.role} className="flex items-center gap-4 rounded-lg border border-zinc-800/80 bg-zinc-950/40 px-4 py-3">
-                        <div className="w-20 shrink-0">
-                          <div className="text-sm font-medium text-zinc-200">{d.role}</div>
-                          <div className="text-[10px] text-zinc-600">{d.cells.length} 个部门</div>
-                        </div>
-                        <div className="text-2xl font-bold tabular-nums text-amber-400">{d.gapMultiple}×</div>
-                        <div className="flex-1 text-xs leading-5 text-zinc-500">
-                          最高 <span className="text-zinc-300">{nameOf(d.maxCell.project_id)}</span> 人均 {formatWan(d.maxCell.per_capita)}（活跃 {d.maxCell.avg_active_days.toFixed(1)} 天）
-                          · 最低 <span className="text-zinc-300">{nameOf(d.minCell.project_id)}</span> 人均 {formatWan(d.minCell.per_capita)}（活跃 {d.minCell.avg_active_days.toFixed(1)} 天）
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => router.push(`/attribution?id=${d.minCell.project_id}`)}
-                          className="shrink-0 text-xs text-zinc-600 transition-colors hover:text-blue-400"
-                        >
-                          诊断最低 →
-                        </button>
-                      </div>
-                    )
-                  })}
-                  <p className="pt-1 text-xs text-zinc-600">
-                    差距说明决定 AI 使用深度的是部门方法，不是岗位性质——标杆部门的用法就是现成的内部教材。
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {tab === 'tiers' && (
-            <div>
-              <SectionHeader
-                title="谁在真正用 AI？"
-                caption={`全员 ${tierStats.total} 名使用者的分层结构（Power = 月 AI ≥ ¥7,000 且活跃 ≥ 20 天）`}
-                right={<FactTag />}
-              />
-              <div className="mt-5 space-y-3">
-                {([
-                  ['power', '重度 Power', '#10b981'],
-                  ['regular', '中度 Regular', '#3b82f6'],
-                  ['light', '轻度 Light', '#f59e0b'],
-                ] as ['power' | 'regular' | 'light', string, string][]).map(([key, label, color]) => {
-                  const n = tierStats.tiers[key]
-                  const pctW = (n / Math.max(tierStats.total, 1)) * 100
-                  return (
-                    <div key={key} className="flex items-center gap-4">
-                      <span className="w-28 shrink-0 text-sm text-zinc-400">{label}</span>
-                      <div className="h-7 flex-1 overflow-hidden rounded-md bg-zinc-800/60">
-                        <div className="flex h-full items-center rounded-md pl-3 text-xs font-semibold text-zinc-950" style={{ width: `${Math.max(pctW, 7)}%`, backgroundColor: color }}>
-                          {n} 人
-                        </div>
-                      </div>
-                      <span className="w-12 shrink-0 text-right text-sm tabular-nums text-zinc-500">{pctW.toFixed(0)}%</span>
-                    </div>
-                  )
-                })}
-              </div>
-              <p className="mt-4 text-xs leading-5 text-zinc-500">
-                {tierStats.tiers.power} 名 Power 用户（{((tierStats.tiers.power / Math.max(tierStats.total, 1)) * 100).toFixed(0)}%）撑起 {(tierStats.powerCostShare * 100).toFixed(0)}% 的个人 AI 成本——标准二八结构。
-                他们是公司最值钱的"方法样本"，也是最不能流失的人（详见 04 决策推演的保人名单）。
+          <Card className="p-5">
+            <div className="flex items-start gap-3">
+              <JudgmentTag />
+              <p className="text-[15px] leading-7 text-zinc-200">
+                分化研判：先处理待优化区的模型错配和低活跃问题，再把已验证放大器的方法迁移到同岗位差距最大的部门；涉及高依赖低 CR 人才时必须进入护栏。
               </p>
             </div>
-          )}
-
-          {tab === 'types' && matrix && (
-            <div>
-              <SectionHeader title="27 个业务单元的五型清单" caption="点击项目名进入根因诊断" right={<FactTag />} />
-              <div className="mt-4 grid grid-cols-5 gap-3">
-                {typeGroups.map(g => (
-                  <div key={g.verdict} className="rounded-lg border border-zinc-800/80 bg-zinc-950/40 p-3">
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: g.color }} />
-                      <span className="text-xs font-medium text-zinc-300">{g.label}</span>
-                      <span className="ml-auto text-xs tabular-nums text-zinc-600">{g.items.length}</span>
-                    </div>
-                    <div className="mt-2.5 space-y-1">
-                      {g.items.map(p => (
-                        <button
-                          key={p.project_id}
-                          type="button"
-                          onClick={() => router.push(`/attribution?id=${p.project_id}`)}
-                          className="block w-full truncate text-left text-xs text-zinc-500 transition-colors hover:text-blue-300"
-                        >
-                          {p.name} <span className="text-zinc-700">{p.trend === 'up' ? '↑' : p.trend === 'down' ? '↓' : '→'}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </Card>
-      </div>
+          </Card>
+        </>
+      )}
 
       <ChapterTransition
-        text={matrix ? `${matrix.counts.underperforming} 个待优化项目月烧 ${formatWan(underBurn)} 但人效没动——为什么？` : '为什么投了钱人效没动？'}
+        text="从分化地图进入根因诊断，解释高投入未转化为人效的原因。"
         href="/attribution"
         cta="03 根因诊断"
       />
     </div>
+  )
+}
+
+function Insight({ text }: { text: string }) {
+  return (
+    <p className="mt-2 rounded-lg border border-cyan-400/15 bg-cyan-400/5 px-3 py-2 text-sm leading-6 text-zinc-400">
+      <JudgmentTag /> <span className="ml-2">{text.slice(0, 80)}</span>
+    </p>
   )
 }

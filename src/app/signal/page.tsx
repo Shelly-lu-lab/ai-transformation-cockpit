@@ -158,7 +158,7 @@ export default function SignalPage() {
     grid: { top: 24, right: 24, bottom: 48, left: 54 },
     tooltip: {
       trigger: 'item',
-      backgroundColor: '#27272a',
+      backgroundColor: 'rgba(63,63,70,0.45)',
       borderColor: '#3f3f46',
       textStyle: { color: '#fafafa' },
       formatter: (params: unknown) => {
@@ -172,14 +172,14 @@ export default function SignalPage() {
       min: 0.005,
       max: Math.min(5, Math.max(...projects.map(p => p.ai_intensity)) * 1.2),
       axisLine: { lineStyle: { color: '#3f3f46' } },
-      splitLine: { lineStyle: { color: '#27272a' } },
+      splitLine: { lineStyle: { color: 'rgba(63,63,70,0.45)' } },
       axisLabel: { color: '#a1a1aa', formatter: (value: number) => formatRatio(value) },
       nameTextStyle: { color: '#a1a1aa' },
     },
     yAxis: {
       name: '人效',
       axisLine: { lineStyle: { color: '#3f3f46' } },
-      splitLine: { lineStyle: { color: '#27272a' } },
+      splitLine: { lineStyle: { color: 'rgba(63,63,70,0.45)' } },
       axisLabel: { color: '#a1a1aa' },
       nameTextStyle: { color: '#a1a1aa' },
     },

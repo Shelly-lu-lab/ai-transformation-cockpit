@@ -1,5 +1,6 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAppData } from '@/lib/DataProvider'
@@ -8,8 +9,10 @@ import { AttributionResponse } from '@/lib/aiSchemas'
 import { formatProductivity, formatRatio } from '@/lib/format'
 import {
   Card, SectionHeader, SeverityBadge, Severity,
-  FactTag, JudgmentTag, ChapterTransition, Skeleton,
+  FactTag, JudgmentTag, ChapterTransition, Skeleton, CockpitTopbar, AiBriefing,
 } from '@/components/ui'
+
+const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false })
 
 const quadrantLabel: Record<string, string> = {
   amplifier: 'AI 放大区',
@@ -24,6 +27,53 @@ const quadrantTone: Record<string, string> = {
   low_base: 'border-zinc-600/40 bg-zinc-700/20 text-zinc-400',
 }
 
+function severityScore(severity: Severity) {
+  if (severity === 'high') return 90
+  if (severity === 'medium') return 62
+  if (severity === 'low') return 35
+  return 12
+}
+
+function MiniStepChart({ step }: { step: AttributionEvidence['steps'][number] }) {
+  const values = step.facts.map((fact, index) => ({
+    name: fact.label.slice(0, 4),
+    value: Math.max(1, Number((fact.value.match(/\d+(\.\d+)?/) || ['1'])[0])),
+    itemStyle: { color: ['#22d3ee', '#3b82f6', '#f59e0b'][index % 3] },
+  }))
+  const option = step.key === 'model'
+    ? { backgroundColor: 'transparent', series: [{ type: 'pie', radius: ['45%', '72%'], label: { show: false }, data: values }] }
+    : {
+        backgroundColor: 'transparent',
+        grid: { top: 8, right: 10, bottom: 18, left: 28 },
+        xAxis: { type: 'category', data: values.map(v => v.name), axisLabel: { color: '#64748b', fontSize: 10 }, axisLine: { show: false } },
+        yAxis: { type: 'value', axisLabel: { show: false }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.12)' } } },
+        series: [{ type: step.key === 'attrition' ? 'bar' : 'line', smooth: true, data: values, barWidth: '45%', lineStyle: { color: '#22d3ee' }, itemStyle: { color: '#22d3ee' }, areaStyle: step.key === 'depth' ? { color: 'rgba(34,211,238,0.12)' } : undefined }],
+      }
+  return <ReactECharts option={option} style={{ height: 96 }} />
+}
+
+function RootCauseRadar({ evidence, ai }: { evidence: AttributionEvidence | null; ai: AttributionResponse | null }) {
+  const steps = evidence?.steps || []
+  const scores = steps.map(step => severityScore(ai?.steps.find(item => item.key === step.key)?.severity ?? step.severity))
+  const option = {
+    backgroundColor: 'transparent',
+    radar: {
+      indicator: [
+        { name: '模型', max: 100 },
+        { name: '人群', max: 100 },
+        { name: '深度', max: 100 },
+        { name: '流失', max: 100 },
+        { name: '组织', max: 100 },
+      ],
+      axisName: { color: '#a1a1aa', fontSize: 11 },
+      splitLine: { lineStyle: { color: 'rgba(148,163,184,0.18)' } },
+      splitArea: { areaStyle: { color: ['rgba(15,23,42,0.35)', 'rgba(15,23,42,0.14)'] } },
+    },
+    series: [{ type: 'radar', data: [{ value: scores.length === 5 ? scores : [0, 0, 0, 0, 0], areaStyle: { color: 'rgba(245,158,11,0.16)' }, lineStyle: { color: '#f59e0b' }, itemStyle: { color: '#f59e0b' } }] }],
+  }
+  return <ReactECharts option={option} style={{ height: 220 }} />
+}
+
 function AttributionInner() {
   const router = useRouter()
   const params = useSearchParams()
@@ -33,9 +83,6 @@ function AttributionInner() {
   const [ai, setAi] = useState<AttributionResponse | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
   const [revealed, setRevealed] = useState(0)
-  const [followUp, setFollowUp] = useState('')
-  const [followUpAnswer, setFollowUpAnswer] = useState<string | null>(null)
-  const [followUpLoading, setFollowUpLoading] = useState(false)
   const revealTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // URL 参数 / 默认项目（优先取待优化区 AI 投入最大的）
@@ -62,7 +109,6 @@ function AttributionInner() {
     if (!selectedId || projects.length === 0) return
     setAi(null)
     setRevealed(0)
-    setFollowUpAnswer(null)
 
     const cacheKey = `attribution-${selectedId}`
     try {
@@ -110,29 +156,11 @@ function AttributionInner() {
 
   useEffect(() => () => { if (revealTimer.current) clearInterval(revealTimer.current) }, [])
 
-  async function askFollowUp() {
-    const q = followUp.trim()
-    if (!q || followUpLoading) return
-    setFollowUpLoading(true)
-    setFollowUpAnswer(null)
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'drilldown', message: q, project_id: selectedId, chapter: 'attribution' }),
-      })
-      const json = await res.json()
-      setFollowUpAnswer(json.data?.answer || json.answer || '未能生成回答。')
-    } catch {
-      setFollowUpAnswer('追问失败，请重试。')
-    }
-    setFollowUpLoading(false)
-  }
-
   const project = evidence?.project
 
   return (
-    <div className="mx-auto max-w-[1280px] space-y-8 px-6 pb-24 pt-8">
+    <div className="mx-auto max-w-[1440px] space-y-6 px-6 pb-24 pt-8">
+      <CockpitTopbar />
       <header className="flex items-end justify-between">
         <div>
           <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-500">03 · 根因诊断</div>
@@ -153,6 +181,7 @@ function AttributionInner() {
           ))}
         </select>
       </header>
+      <AiBriefing title="诊断要闻" prompt="基于根因诊断页，给出当前项目最值得关注的一句根因要闻" />
 
       {isLoading || !project ? (
         <Skeleton className="h-24" />
@@ -185,6 +214,28 @@ function AttributionInner() {
           </div>
         </Card>
       )}
+
+      {evidence ? (
+        <Card className="p-5">
+          <div className="grid grid-cols-5 gap-3">
+            {evidence.steps.map((step, index) => {
+              const aiStep = ai?.steps.find(s => s.key === step.key)
+              const severity: Severity = aiStep?.severity ?? step.severity
+              const visible = revealed > index || (!aiLoading && !ai)
+              return (
+                <div key={step.key} className={`relative rounded-xl border px-3 py-3 transition-all ${visible ? 'border-cyan-400/35 bg-cyan-400/5' : 'border-zinc-800 bg-zinc-950/40 opacity-50'}`}>
+                  {index < evidence.steps.length - 1 ? <span className="absolute left-[calc(100%-0.75rem)] top-6 h-px w-6 bg-zinc-700" /> : null}
+                  <div className="flex items-center justify-between">
+                    <span className="grid h-7 w-7 place-items-center rounded-full border border-zinc-700 text-[11px] font-bold text-zinc-400">{index + 1}</span>
+                    <SeverityBadge severity={severity} />
+                  </div>
+                  <div className="mt-3 text-sm font-medium text-zinc-200">{step.title}</div>
+                </div>
+              )
+            })}
+          </div>
+        </Card>
+      ) : null}
 
       {/* 五步推理链 */}
       <div className="space-y-3">
@@ -220,6 +271,7 @@ function AttributionInner() {
                         </span>
                       </div>
                     ))}
+                    <MiniStepChart step={step} />
                     <p className="border-t border-zinc-800/60 pt-2 text-xs leading-5 text-zinc-400">{step.finding}</p>
                   </div>
                   {/* 右：AI 研判 */}
@@ -257,13 +309,16 @@ function AttributionInner() {
               )}
             </div>
           </div>
-          {aiLoading ? (
-            <div className="mt-4 space-y-2"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-3/4" /></div>
-          ) : (
-            <p className="mt-4 text-[15px] leading-relaxed text-zinc-100">
-              {ai?.root_cause || 'AI 根因综合暂不可用；请基于上方五步事实自行研判。'}
-            </p>
-          )}
+          <div className="mt-4 grid grid-cols-[320px_1fr] gap-5">
+            <RootCauseRadar evidence={evidence} ai={ai} />
+            {aiLoading ? (
+              <div className="space-y-2"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-3/4" /></div>
+            ) : (
+              <p className="text-[15px] leading-relaxed text-zinc-100">
+                {ai?.root_cause || 'AI 根因综合暂不可用；请基于上方五步事实自行研判。'}
+              </p>
+            )}
+          </div>
           <div className="mt-5 flex items-center gap-3">
             <button
               type="button"
@@ -275,46 +330,6 @@ function AttributionInner() {
           </div>
         </Card>
       </div>
-
-      {/* 追问 */}
-      <Card className="p-5">
-        <SectionHeader title="追问 AI" caption="带着当前项目的全部证据上下文回答" />
-        <div className="mt-3 flex gap-2">
-          {['模型错配具体怎么个错法？', '和标杆的差距主要在哪个岗位？', '如果只能先做一件事，做什么？'].map(q => (
-            <button
-              key={q}
-              type="button"
-              onClick={() => { setFollowUp(q); }}
-              className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:border-blue-500/50 hover:text-blue-300"
-            >
-              {q}
-            </button>
-          ))}
-        </div>
-        <div className="mt-3 flex gap-2">
-          <input
-            value={followUp}
-            onChange={e => setFollowUp(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') askFollowUp() }}
-            placeholder="输入追问…"
-            className="h-10 flex-1 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-blue-500"
-          />
-          <button
-            type="button"
-            onClick={askFollowUp}
-            disabled={followUpLoading}
-            className="h-10 rounded-lg bg-zinc-800 px-4 text-sm text-zinc-200 transition-colors hover:bg-zinc-700 disabled:opacity-50"
-          >
-            {followUpLoading ? '分析中…' : '追问'}
-          </button>
-        </div>
-        {followUpAnswer && (
-          <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-950/60 p-4">
-            <JudgmentTag />
-            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-zinc-200">{followUpAnswer}</p>
-          </div>
-        )}
-      </Card>
 
       <ChapterTransition
         text="根因清楚了——接下来钱和人怎么调？"

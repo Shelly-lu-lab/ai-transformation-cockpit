@@ -30,8 +30,8 @@ export function Nav() {
             AI
           </span>
           <div>
-            <div className="text-sm font-semibold tracking-wide text-zinc-50">AI 人效决策引擎</div>
-            <div className="text-[10px] tracking-wide text-zinc-600">AI-Powered Human Capital ROI Engine</div>
+            <div className="text-sm font-semibold tracking-wide text-zinc-50">AI 转型驾驶舱</div>
+            <div className="text-[10px] tracking-wide text-zinc-600">AI Transformation Cockpit</div>
           </div>
         </Link>
 

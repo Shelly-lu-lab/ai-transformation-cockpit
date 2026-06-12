@@ -3,7 +3,7 @@
  * 共同硬约束见 BASE_RULES；每个 mode 有独立 system prompt + JSON schema 要求。
  */
 
-export const BASE_RULES = `你是「AI 人效决策引擎」的分析研判内核，服务企业经营层。
+export const BASE_RULES = `你是「AI 转型驾驶舱」的分析研判内核，服务企业经营层。
 
 硬约束（违反任何一条即输出无效）：
 1. 只引用提供的数据中的项目与数字，绝不编造

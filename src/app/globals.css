@@ -2,8 +2,11 @@
 @plugin "@tailwindcss/typography";
 
 :root {
-  --background: #09090b;
+  --background: #0b1020;
   --foreground: #fafafa;
+  --accent-blue: #3b82f6;
+  --accent-cyan: #22d3ee;
+  --accent-amber: #f59e0b;
 }
 
 @theme inline {
@@ -22,9 +25,14 @@ html {
 
 body {
   margin: 0;
-  background: var(--background);
+  background:
+    radial-gradient(circle at 50% -10%, rgba(34, 211, 238, 0.12), transparent 34rem),
+    radial-gradient(circle at 12% 0%, rgba(59, 130, 246, 0.10), transparent 28rem),
+    var(--background);
   color: var(--foreground);
   font-family: Inter, Arial, Helvetica, sans-serif;
+  font-size: 15px;
+  line-height: 1.65;
 }
 
 button,

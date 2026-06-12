@@ -1,17 +1,20 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { Suspense, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAppData } from '@/lib/DataProvider'
 import { getCriticalTalentList } from '@/lib/analytics'
 import { DecisionResponse } from '@/lib/aiSchemas'
 import {
-  Card, SectionHeader, FactTag, JudgmentTag, Skeleton,
+  Card, SectionHeader, FactTag, JudgmentTag, Skeleton, CockpitTopbar, AiBriefing,
 } from '@/components/ui'
+
+const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false })
 
 function DecisionInner() {
   const params = useSearchParams()
-  const { projects, talentRisk, isLoading } = useAppData()
+  const { projects, talentRisk, companySummary, isLoading } = useAppData()
   const [ai, setAi] = useState<DecisionResponse | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
   const [activeIntent, setActiveIntent] = useState('')
@@ -30,6 +33,24 @@ function DecisionInner() {
     critical.forEach(c => m.set(c.project_name, (m.get(c.project_name) || 0) + 1))
     return [...m.entries()].sort((a, b) => b[1] - a[1])
   }, [critical])
+  const guardOption = useMemo(() => ({
+    backgroundColor: 'transparent',
+    grid: { top: 24, right: 24, bottom: 48, left: 58 },
+    tooltip: {
+      backgroundColor: '#0f172a',
+      borderColor: '#334155',
+      textStyle: { color: '#fafafa' },
+      formatter: (params: { data: (number | string)[] }) => `<b>${params.data[3]}</b><br/>${params.data[4]}<br/>CR ${Number(params.data[1]).toFixed(2)}<br/>活跃 ${params.data[2]} 天`,
+    },
+    xAxis: { type: 'category', name: '项目', data: [...new Set(critical.map(item => item.project_name))], axisLabel: { color: '#94a3b8', rotate: 30 }, splitLine: { show: false } },
+    yAxis: { name: '代理CR', min: 0.5, max: 1, axisLabel: { color: '#94a3b8' }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.14)' } } },
+    series: [{
+      type: 'scatter',
+      data: critical.map(item => [item.project_name, item.cr, item.active_days, item.id, item.role || '核心岗位']),
+      symbolSize: (value: (number | string)[]) => Math.max(12, Math.min(40, Number(value[2]) * 1.2)),
+      itemStyle: { color: '#f59e0b', opacity: 0.82 },
+    }],
+  }), [critical])
 
   const scenarios = useMemo(() => {
     const list: { label: string; intent: string }[] = []
@@ -65,7 +86,8 @@ function DecisionInner() {
   }
 
   return (
-    <div className="mx-auto max-w-[1280px] space-y-8 px-6 pb-24 pt-8">
+    <div className="mx-auto max-w-[1440px] space-y-6 px-6 pb-24 pt-8">
+      <CockpitTopbar />
       <header>
         <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-500">04 · 决策推演</div>
         <h1 className="mt-2 text-[28px] font-semibold leading-tight text-zinc-50">钱和人，接下来怎么投？</h1>
@@ -73,6 +95,7 @@ function DecisionInner() {
           AI 基于诊断证据生成可执行方案——每张行动卡都有参照标杆与验证方式，触及关键人才时自动亮护栏。
         </p>
       </header>
+      <AiBriefing title="推演要闻" prompt="基于决策推演页，给出预算动作与人才护栏的一句经营提醒" />
 
       {/* 保人名单（事实层，始终在场） */}
       <Card className="border-amber-500/25 p-5">
@@ -82,23 +105,27 @@ function DecisionInner() {
           right={<FactTag />}
         />
         {isLoading ? (
-          <Skeleton className="mt-3 h-10" />
+          <Skeleton className="mt-3 h-64" />
         ) : critical.length === 0 ? (
           <p className="mt-3 text-sm text-zinc-500">当前无满足三重风险条件的人员。</p>
         ) : (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {criticalByProject.map(([name, n]) => (
-              <span key={name} className="rounded-md border border-amber-500/30 bg-amber-500/[0.07] px-3 py-1.5 text-xs text-amber-200">
-                {name} · {n} 人
-              </span>
-            ))}
+          <div className="mt-4 grid grid-cols-[1fr_280px] gap-5">
+            <ReactECharts option={guardOption} style={{ height: 280 }} />
+            <div className="space-y-2">
+              {criticalByProject.map(([name, n]) => (
+                <div key={name} className="rounded-lg border border-amber-500/25 bg-amber-500/[0.07] px-3 py-2">
+                  <div className="flex justify-between gap-3 text-sm text-amber-100"><span>{name}</span><span>{n} 人</span></div>
+                </div>
+              ))}
+              <p className="pt-2 text-xs leading-5 text-zinc-500"><JudgmentTag /> <span className="ml-1">任何预算动作触达这些人群时，方案必须优先保护额度与激励。</span></p>
+            </div>
           </div>
         )}
       </Card>
 
       {/* 场景入口 */}
       <div>
-        <SectionHeader title="推演场景" caption="选择场景或自由描述决策意图，AI 实时生成方案" />
+        <SectionHeader title="场景推演（结构化方案生成）" caption="这里用于生成行动卡与护栏校验；自由追问请使用右侧 AI 对话坞" />
         <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {scenarios.map(s => (
             <button
@@ -121,7 +148,7 @@ function DecisionInner() {
             value={freeInput}
             onChange={e => setFreeInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && freeInput.trim()) runDecision(freeInput.trim()) }}
-            placeholder="或自由描述：例如「在不动核心人才的前提下，把低效 AI 投入转投高潜力区」…"
+            placeholder="描述推演场景：例如「在不动核心人才的前提下，把低效 AI 投入转投高潜力区」…"
             className="h-11 flex-1 rounded-lg border border-zinc-700 bg-zinc-950 px-4 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-blue-500"
           />
           <button
@@ -196,6 +223,7 @@ function DecisionInner() {
                 <dl className="mt-4 flex-1 space-y-2.5 border-t border-zinc-800/80 pt-3 text-xs leading-5">
                   <div><dt className="text-zinc-600">影响范围</dt><dd className="text-zinc-300">{c.scope}</dd></div>
                   <div><dt className="text-zinc-600">量化影响</dt><dd className="font-medium tabular-nums text-zinc-200">{c.amount}</dd></div>
+                  <RoiMiniBar amount={c.amount} />
                   <div><dt className="text-zinc-600">参照标杆</dt><dd className="text-emerald-400/90">{c.benchmark}</dd></div>
                   <div><dt className="text-zinc-600">验证方式</dt><dd className="text-zinc-300">{c.validation}</dd></div>
                   <div><dt className="text-zinc-600">风险</dt><dd className="text-zinc-400">{c.risk}</dd></div>
@@ -210,8 +238,17 @@ function DecisionInner() {
           {/* 推演（如有） */}
           {ai.simulation && (
             <Card className="border-blue-500/25 bg-gradient-to-br from-blue-500/[0.06] to-transparent p-5">
-              <SectionHeader title="假设推演" caption="基于放大器标杆的经验迁移（含前提假设与爬坡期）" right={<JudgmentTag />} />
-              <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-zinc-200">{ai.simulation}</p>
+              <SectionHeader title="推演对比" caption="前后对比图 + AI 推演研判" right={<JudgmentTag />} />
+              <div className="mt-3 grid grid-cols-[1fr_1fr] gap-5">
+                <SimulationChart
+                  avgProductivity={companySummary.avg_productivity}
+                  aiToLaborRatio={companySummary.ai_to_labor_ratio}
+                  criticalCount={critical.length}
+                  actionCards={ai.action_cards}
+                  guardrailHits={ai.guardrail_hits}
+                />
+                <p className="whitespace-pre-line text-sm leading-relaxed text-zinc-200">{ai.simulation}</p>
+              </div>
             </Card>
           )}
         </div>
@@ -227,6 +264,75 @@ function DecisionInner() {
       )}
     </div>
   )
+}
+
+function parseAmount(amount: string) {
+  const match = amount.match(/(\d+(\.\d+)?)/)
+  return match ? Number(match[1]) : 0
+}
+
+function RoiMiniBar({ amount }: { amount: string }) {
+  const value = parseAmount(amount)
+  const width = Math.max(8, Math.min(100, value))
+  return (
+    <div>
+      <dt className="text-zinc-600">ROI 预期</dt>
+      <dd className="mt-1 h-2 overflow-hidden rounded-full bg-zinc-800">
+        <span className="block h-full rounded-full bg-cyan-400" style={{ width: `${width}%` }} />
+      </dd>
+    </div>
+  )
+}
+
+function SimulationChart({
+  avgProductivity,
+  aiToLaborRatio,
+  criticalCount,
+  actionCards,
+  guardrailHits,
+}: {
+  avgProductivity: number
+  aiToLaborRatio: number
+  criticalCount: number
+  actionCards: DecisionResponse['action_cards']
+  guardrailHits: DecisionResponse['guardrail_hits']
+}) {
+  const amountSignal = actionCards
+    .map(card => parseAmount(card.amount))
+    .filter(value => value > 0)
+  const avgSignal = amountSignal.length
+    ? amountSignal.reduce((sum, value) => sum + value, 0) / amountSignal.length
+    : actionCards.length
+  const liftRate = Math.min(0.18, Math.max(0.03, avgSignal / 1000))
+  const protectedCount = guardrailHits.reduce((sum, hit) => sum + hit.count, 0)
+  const current = [
+    Number(avgProductivity.toFixed(2)),
+    Number((aiToLaborRatio * 100).toFixed(2)),
+    criticalCount,
+  ]
+  const projected = [
+    Number((avgProductivity * (1 + liftRate)).toFixed(2)),
+    Number((aiToLaborRatio * 100 * (1 + Math.min(0.2, actionCards.length * 0.04))).toFixed(2)),
+    Math.max(0, criticalCount - protectedCount),
+  ]
+  const option = {
+    backgroundColor: 'transparent',
+    grid: { top: 24, right: 16, bottom: 34, left: 42 },
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: '#0f172a',
+      borderColor: '#334155',
+      textStyle: { color: '#fafafa' },
+    },
+    legend: { top: 0, textStyle: { color: '#94a3b8' } },
+    xAxis: { type: 'category', data: ['人效(×)', 'AI投入比(%)', '人才风险(人)'], axisLabel: { color: '#94a3b8' } },
+    yAxis: { type: 'value', axisLabel: { color: '#94a3b8' }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.14)' } } },
+    series: [
+      { name: '当前', type: 'bar', data: current, itemStyle: { color: '#475569', borderRadius: [4, 4, 0, 0] } },
+      { name: '推演后', type: 'bar', data: projected, itemStyle: { color: '#22d3ee', borderRadius: [4, 4, 0, 0] } },
+    ],
+  }
+  return <ReactECharts option={option} style={{ height: 260 }} />
 }
 
 export default function DecisionPage() {
