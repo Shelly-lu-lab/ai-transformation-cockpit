@@ -141,12 +141,14 @@ export function CockpitTopbar({ onRefresh }: { onRefresh?: () => void }) {
   const { projects, monthlyTrend, talentRisk, dataSource, sourceName } = useAppData()
   const months = Array.from(new Set(monthlyTrend.map(record => record.month))).sort()
   const period = months.length > 0 ? `${months[0]}–${months[months.length - 1]}` : '暂无趋势数据'
+  const businessCount = projects.filter(project => !project.is_cost_center).length
+  const supportCount = projects.filter(project => project.is_cost_center).length
 
   return (
     <div className="flex items-center justify-between rounded-xl border border-zinc-200/80 bg-white/85 px-4 py-3 text-xs text-slate-500 shadow-[var(--shadow-card)] backdrop-blur-sm">
       <div className="flex items-center gap-4">
         <span>数据快照：{period}</span>
-        <span>{projects.length} 业务单元 · {talentRisk.length} 人</span>
+        <span>{projects.length} 业务单元（{businessCount} 业务 / {supportCount} 支撑）· {talentRisk.length} 人</span>
         <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-slate-600">{dataSource === 'uploaded' ? sourceName : '示例数据集'}</span>
       </div>
       {onRefresh ? (

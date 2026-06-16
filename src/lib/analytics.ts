@@ -91,7 +91,7 @@ export interface LeveragePoint {
   trend: TrendDirection
   monthlyRate: number
   /** 真放大器 = 高AI高人效 且 趋势↑；运气好 = 高人效但趋势平/降 */
-  verdict: 'amplifier_confirmed' | 'amplifier_unproven' | 'underperforming' | 'high_potential' | 'low_base'
+  verdict: 'amplifier_confirmed' | 'amplifier_unproven' | 'underperforming' | 'high_potential' | 'low_base' | 'support'
 }
 
 export interface LeverageMatrix {
@@ -105,14 +105,16 @@ export function getLeverageMatrix(
   projects: ProjectWithMetrics[],
   trend: MonthlyRecord[]
 ): LeverageMatrix {
-  const valid = projects.filter(p => p.labor_cost > 0)
+  const valid = projects.filter(p => p.labor_cost > 0 && !p.is_cost_center)
   const medianIntensity = median(valid.map(p => p.ai_intensity))
   const medianProductivity = median(valid.map(p => p.productivity))
 
-  const points: LeveragePoint[] = valid.map(p => {
+  const points: LeveragePoint[] = projects.filter(p => p.labor_cost > 0).map(p => {
     const t = getProductivityTrend(p.id, trend)
     let verdict: LeveragePoint['verdict']
-    if (p.quadrant === 'amplifier') {
+    if (p.is_cost_center || p.quadrant === 'support') {
+      verdict = 'support'
+    } else if (p.quadrant === 'amplifier') {
       verdict = t.direction === 'up' ? 'amplifier_confirmed' : 'amplifier_unproven'
     } else {
       verdict = p.quadrant
@@ -136,6 +138,7 @@ export function getLeverageMatrix(
     underperforming: 0,
     high_potential: 0,
     low_base: 0,
+    support: 0,
   }
   points.forEach(p => { counts[p.verdict]++ })
 
@@ -457,6 +460,7 @@ function selectAttributionBenchmark(
   }
   const candidates = projects.filter(project =>
     project.id !== current.id
+    && !project.is_cost_center
     && project.quadrant === 'amplifier'
     && getProductivityTrend(project.id, trend).direction === 'up'
   )
@@ -737,6 +741,7 @@ export interface VerdictInputs {
     underperforming: number
     underperformingAiCost: number
     trendUpCount: number
+    costCenterCount: number
   }
   efficiencyDim: {  // 🚀 效率撬动了吗
     powerCount: number
@@ -756,12 +761,13 @@ export function buildVerdictInputs(
   trend: MonthlyRecord[],
   talents: TalentRecord[]
 ): VerdictInputs {
+  const pnlProjects = projects.filter(project => !project.is_cost_center)
   const matrix = getLeverageMatrix(projects, trend)
   const critical = getCriticalTalentList(talents, projects)
 
-  const totalLabor = projects.reduce((s, p) => s + p.labor_cost, 0)
-  const totalAi = projects.reduce((s, p) => s + p.ai_cost, 0)
-  const totalProfit = projects.reduce((s, p) => s + p.profit, 0)
+  const totalLabor = pnlProjects.reduce((s, p) => s + p.labor_cost, 0)
+  const totalAi = pnlProjects.reduce((s, p) => s + p.ai_cost, 0)
+  const totalProfit = pnlProjects.reduce((s, p) => s + p.profit, 0)
 
   const powerUsers = talents.filter(t => t.tier === 'power')
   const totalTalentCost = talents.reduce((s, t) => s + (t.ai_cost_cny ?? 0), 0)
@@ -779,15 +785,16 @@ export function buildVerdictInputs(
       amplifierUnproven: matrix.counts.amplifier_unproven,
       underperforming: matrix.counts.underperforming,
       underperformingAiCost: projects
-        .filter(p => p.quadrant === 'underperforming')
+        .filter(p => !p.is_cost_center && p.quadrant === 'underperforming')
         .reduce((s, p) => s + p.ai_cost, 0),
-      trendUpCount: matrix.points.filter(p => p.trend === 'up').length,
+      trendUpCount: matrix.points.filter(p => p.verdict !== 'support' && p.trend === 'up').length,
+      costCenterCount: projects.filter(project => project.is_cost_center).length,
     },
     efficiencyDim: {
       powerCount: powerUsers.length,
       powerCostShare: totalTalentCost > 0 ? powerCost / totalTalentCost : 0,
       deepDeptCount: matrix.counts.amplifier_confirmed + matrix.counts.amplifier_unproven,
-      lowActiveProjects: projects.filter(p => p.avg_active_days < 12).length,
+      lowActiveProjects: pnlProjects.filter(p => p.avg_active_days < 12).length,
     },
     peopleDim: {
       criticalTalent: critical,

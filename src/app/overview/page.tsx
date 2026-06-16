@@ -17,6 +17,7 @@ const quadrantColor: Record<Quadrant, string> = {
   underperforming: '#ef4444',
   high_potential: '#3b82f6',
   low_base: '#71717a',
+  support: '#94a3b8',
 }
 
 const quadrantLabel: Record<Quadrant, string> = {
@@ -24,6 +25,7 @@ const quadrantLabel: Record<Quadrant, string> = {
   underperforming: '待改善',
   high_potential: '待加码',
   low_base: '基础区',
+  support: '支撑部门',
 }
 
 type ChartPoint = [number, number, number, string, string, number, string]

@@ -1,6 +1,7 @@
 import { Project, ProjectWithMetrics, Quadrant, CompanySummary, TalentRecord, TalentRiskSummary } from './types'
 
 export function getProductivity(project: Project): number {
+  if (project.is_cost_center) return 0
   const totalCost = project.labor_cost + project.ai_cost
   if (totalCost === 0) return 0
   return project.profit / totalCost
@@ -30,31 +31,35 @@ function median(values: number[]): number {
 }
 
 export function enrichProjects(projects: Project[]): ProjectWithMetrics[] {
+  const pnlProjects = projects.filter(project => !project.is_cost_center)
   const productivities = projects.map(getProductivity)
   const intensities = projects.map(getAiIntensity)
-  const medProd = median(productivities)
-  const medInt = median(intensities)
+  const medProd = median(pnlProjects.map(getProductivity))
+  const medInt = median(pnlProjects.map(getAiIntensity))
 
   return projects.map((p, i) => ({
     ...p,
     productivity: productivities[i],
     ai_intensity: intensities[i],
-    quadrant: getQuadrant(productivities[i], intensities[i], medProd, medInt),
+    quadrant: p.is_cost_center ? 'support' : getQuadrant(productivities[i], intensities[i], medProd, medInt),
   }))
 }
 
 export function getCompanySummary(projects: ProjectWithMetrics[]): CompanySummary {
+  const pnlProjects = projects.filter(project => !project.is_cost_center)
   const total_headcount = projects.reduce((s, p) => s + p.headcount, 0)
   const total_labor_cost = projects.reduce((s, p) => s + p.labor_cost, 0)
   const total_ai_cost = projects.reduce((s, p) => s + p.ai_cost, 0)
-  const total_revenue = projects.reduce((s, p) => s + p.revenue, 0)
-  const total_profit = projects.reduce((s, p) => s + p.profit, 0)
+  const total_revenue = pnlProjects.reduce((s, p) => s + p.revenue, 0)
+  const total_profit = pnlProjects.reduce((s, p) => s + p.profit, 0)
+  const pnl_labor_cost = pnlProjects.reduce((s, p) => s + p.labor_cost, 0)
+  const pnl_ai_cost = pnlProjects.reduce((s, p) => s + p.ai_cost, 0)
   const ai_to_labor_ratio = total_labor_cost > 0 ? total_ai_cost / total_labor_cost : 0
-  const avg_productivity = (total_labor_cost + total_ai_cost) > 0
-    ? total_profit / (total_labor_cost + total_ai_cost) : 0
+  const avg_productivity = (pnl_labor_cost + pnl_ai_cost) > 0
+    ? total_profit / (pnl_labor_cost + pnl_ai_cost) : 0
 
   const quadrant_distribution: Record<Quadrant, number> = {
-    amplifier: 0, underperforming: 0, high_potential: 0, low_base: 0
+    amplifier: 0, underperforming: 0, high_potential: 0, low_base: 0, support: 0
   }
   projects.forEach(p => { quadrant_distribution[p.quadrant]++ })
 

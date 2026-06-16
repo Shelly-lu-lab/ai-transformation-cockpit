@@ -27,7 +27,7 @@ const DataContext = createContext<AppData>({
     total_headcount: 0, total_labor_cost: 0, total_ai_cost: 0,
     total_revenue: 0, total_profit: 0, ai_to_labor_ratio: 0,
     avg_productivity: 0, project_count: 0,
-    quadrant_distribution: { amplifier: 0, underperforming: 0, high_potential: 0, low_base: 0 },
+    quadrant_distribution: { amplifier: 0, underperforming: 0, high_potential: 0, low_base: 0, support: 0 },
   },
   isLoading: true,
   error: null,
@@ -40,7 +40,7 @@ const emptyCompanySummary: CompanySummary = {
   total_headcount: 0, total_labor_cost: 0, total_ai_cost: 0,
   total_revenue: 0, total_profit: 0, ai_to_labor_ratio: 0,
   avg_productivity: 0, project_count: 0,
-  quadrant_distribution: { amplifier: 0, underperforming: 0, high_potential: 0, low_base: 0 },
+  quadrant_distribution: { amplifier: 0, underperforming: 0, high_potential: 0, low_base: 0, support: 0 },
 }
 
 export function DataProvider({ children }: { children: ReactNode }) {

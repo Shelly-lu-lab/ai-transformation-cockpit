@@ -13,7 +13,7 @@ import {
 } from '@/components/ui'
 import { TermTooltip } from '@/components/TermTooltip'
 
-const CACHE_KEY = 'verdict-cache-v2'
+const CACHE_KEY = 'verdict-cache-v3'
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false })
 
 function gradeToScore(grade?: 'A' | 'B' | 'C') {
@@ -65,10 +65,13 @@ export default function VerdictPage() {
 
   const vi = projects.length > 0 ? buildVerdictInputs(projects, monthlyTrend, talentRisk) : null
   const leverage = projects.length > 0 ? getLeverageMatrix(projects, monthlyTrend) : null
+  const pnlProjects = projects.filter(project => !project.is_cost_center)
+  const pnlProjectIds = new Set(pnlProjects.map(project => project.id))
+  const supportCount = projects.length - pnlProjects.length
   const months = Array.from(new Set(monthlyTrend.map(record => record.month))).sort()
-  const trendUpCount = projects.filter(project => getProductivityTrend(project.id, monthlyTrend).direction === 'up').length
+  const trendUpCount = pnlProjects.filter(project => getProductivityTrend(project.id, monthlyTrend).direction === 'up').length
   const monthlyAgg = months.map(month => {
-    const rows = monthlyTrend.filter(record => record.month === month)
+    const rows = monthlyTrend.filter(record => record.month === month && pnlProjectIds.has(record.project_id))
     const labor = rows.reduce((sum, record) => sum + record.labor_cost, 0)
     const aiCost = rows.reduce((sum, record) => sum + record.ai_cost, 0)
     const revenue = rows.reduce((sum, record) => sum + record.revenue, 0)
@@ -84,7 +87,7 @@ export default function VerdictPage() {
     gradeToScore(ai?.grades.efficiency),
     gradeToScore(ai?.grades.people),
     leverage ? Math.max(30, 90 - getLeverageMatrix(projects, monthlyTrend).points.filter(p => p.verdict === 'underperforming').length * 5) : 55,
-    projects.length > 0 ? Math.round((trendUpCount / projects.length) * 100) : 55,
+    pnlProjects.length > 0 ? Math.round((trendUpCount / pnlProjects.length) * 100) : 55,
   ]
   const dimensionColors = ['bg-blue-600', 'bg-cyan-600', 'bg-amber-600', 'bg-violet-600', 'bg-emerald-600']
   const trendInsight = ai?.dimension_insights?.find(item => item.key === 'trend')?.judgment
@@ -201,16 +204,19 @@ export default function VerdictPage() {
             sub="重度使用者 × 薪酬偏低 × 流失环境"
             tone={vi.northStar.criticalTalentCount > 20 ? 'bad' : vi.northStar.criticalTalentCount > 0 ? 'warn' : 'good'}
           />
-          <BigNumber label={<TermTooltip term="productivity_trend_up">人效在改善</TermTooltip>} value={String(trendUpCount)} units="个" sub={`${projects.length} 个业务单元`} tone="good" />
+          <BigNumber label={<TermTooltip term="productivity_trend_up">人效在改善</TermTooltip>} value={String(trendUpCount)} units="个" sub={`${pnlProjects.length} 个有 P&L 的业务单元`} tone="good" />
         </div>
       )}
-      <div className="-mt-6 flex justify-end"><SimulatedTag /></div>
+      <div className="-mt-6 flex items-center justify-end gap-3">
+        <span className="text-xs text-slate-500">基于 {pnlProjects.length} 个有 P&L 的业务单元；{supportCount} 个支撑部门不参与人效评级。</span>
+        <SimulatedTag />
+      </div>
 
       {/* 健康度总评 */}
       <Card className="p-6">
         <SectionHeader
           title="AI 转型整体打分"
-          caption="三个维度：钱花得值吗 · 效率撬动了吗 · 人扛得住吗"
+          caption="三个维度：钱花得值吗 · 效率撬动了吗 · 人扛得住吗；支撑部门仅看成本与使用，不进入利润人效打分"
           right={
             <div className="flex items-center gap-3">
               <JudgmentTag />
@@ -276,7 +282,7 @@ export default function VerdictPage() {
         {vi && (
           <div className="mt-5 grid grid-cols-3 gap-3 border-t border-zinc-200 pt-4">
             <div className="text-xs leading-5 text-slate-500">
-              <FactTag /> <span className="ml-1">AI 已让人效变好 {vi.moneyDim.amplifierConfirmed} 个 · 待改善 {vi.moneyDim.underperforming} 个 · 人效在改善 {trendUpCount}/{projects.length}</span>
+              <FactTag /> <span className="ml-1">AI 已让人效变好 {vi.moneyDim.amplifierConfirmed} 个 · 待改善 {vi.moneyDim.underperforming} 个 · 人效在改善 {trendUpCount}/{pnlProjects.length} · 支撑部门 {vi.moneyDim.costCenterCount} 个</span>
             </div>
             <div className="text-xs leading-5 text-slate-500">
               <FactTag /> <span className="ml-1">重度使用者 {vi.efficiencyDim.powerCount} 人撑起 {(vi.efficiencyDim.powerCostShare * 100).toFixed(0)}% 的 AI 成本 · 低活跃项目 {vi.efficiencyDim.lowActiveProjects} 个</span>

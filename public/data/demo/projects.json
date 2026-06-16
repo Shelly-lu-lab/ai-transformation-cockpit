@@ -8,8 +8,8 @@
     "ai_cost": 683765,
     "ai_penetration": 90.2,
     "power_user_ratio": 2.9,
-    "revenue": 15137586,
-    "profit": 8231704,
+    "revenue": 25216508,
+    "profit": 13712545,
     "engagement_score": 65.5,
     "role_distribution": {
       "技术研发": 33,
@@ -57,7 +57,8 @@
       "avg_cr": 1.1
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": false
   },
   {
     "id": "P-02",
@@ -66,10 +67,10 @@
     "headcount": 16,
     "labor_cost": 419234,
     "ai_cost": 79743,
-    "ai_penetration": 100.0,
+    "ai_penetration": 100,
     "power_user_ratio": 12.5,
-    "revenue": 880528,
-    "profit": 417725,
+    "revenue": 0,
+    "profit": 0,
     "engagement_score": 64.6,
     "role_distribution": {
       "技术研发": 13,
@@ -90,7 +91,7 @@
       "其他": 0.5121
     },
     "avg_active_days": 17.4,
-    "ai_platform_count_avg": 2.0,
+    "ai_platform_count_avg": 2,
     "recent_turnover": {
       "total_exits": 0,
       "power_user_exits": 0,
@@ -103,8 +104,8 @@
       "overall": 64.6,
       "career_development": 48.5,
       "compensation_recognition": 48.5,
-      "management_leadership": 75.0,
-      "work_life_balance": 59.0,
+      "management_leadership": 75,
+      "work_life_balance": 59,
       "stay_intention": 64.2
     },
     "power_user_profile": {
@@ -114,10 +115,11 @@
         "产品"
       ],
       "avg_ai_cost": 7771,
-      "avg_cr": 1.0
+      "avg_cr": 1
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": true
   },
   {
     "id": "P-03",
@@ -126,10 +128,10 @@
     "headcount": 31,
     "labor_cost": 1337294,
     "ai_cost": 184176,
-    "ai_penetration": 100.0,
+    "ai_penetration": 100,
     "power_user_ratio": 33.3,
-    "revenue": 2559413,
-    "profit": 1172331,
+    "revenue": 0,
+    "profit": 0,
     "engagement_score": null,
     "role_distribution": {
       "技术研发": 17,
@@ -158,7 +160,7 @@
       "involuntary_exits": 0
     },
     "avg_annual_salary": 0,
-    "salary_cost_ratio": 0.0,
+    "salary_cost_ratio": 0,
     "engagement_dimensions": {
       "overall": null,
       "career_development": null,
@@ -177,7 +179,8 @@
       "avg_cr": 1.08
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": true
   },
   {
     "id": "P-04",
@@ -186,10 +189,10 @@
     "headcount": 10,
     "labor_cost": 441189,
     "ai_cost": 157174,
-    "ai_penetration": 100.0,
-    "power_user_ratio": 80.0,
-    "revenue": 1401147,
-    "profit": 762857,
+    "ai_penetration": 100,
+    "power_user_ratio": 80,
+    "revenue": 0,
+    "profit": 0,
     "engagement_score": 64.5,
     "role_distribution": {
       "技术研发": 5,
@@ -237,7 +240,8 @@
       "avg_cr": 1.02
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": true
   },
   {
     "id": "P-05",
@@ -246,10 +250,10 @@
     "headcount": 3,
     "labor_cost": 137816,
     "ai_cost": 50434,
-    "ai_penetration": 100.0,
+    "ai_penetration": 100,
     "power_user_ratio": 33.3,
-    "revenue": 599223,
-    "profit": 405563,
+    "revenue": -45228,
+    "profit": -30611,
     "engagement_score": 64.8,
     "role_distribution": {
       "技术研发": 1,
@@ -283,9 +287,9 @@
       "overall": 64.8,
       "career_development": 48.1,
       "compensation_recognition": 49.1,
-      "management_leadership": 75.0,
-      "work_life_balance": 59.0,
-      "stay_intention": 64.0
+      "management_leadership": 75,
+      "work_life_balance": 59,
+      "stay_intention": 64
     },
     "power_user_profile": {
       "count": 2,
@@ -294,10 +298,11 @@
         "产品"
       ],
       "avg_ai_cost": 23732,
-      "avg_cr": 1.0
+      "avg_cr": 1
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": false
   },
   {
     "id": "P-06",
@@ -307,9 +312,9 @@
     "labor_cost": 3840,
     "ai_cost": 14336,
     "ai_penetration": 61.9,
-    "power_user_ratio": 0.0,
-    "revenue": 31800,
-    "profit": 13631,
+    "power_user_ratio": 0,
+    "revenue": 688913,
+    "profit": 295301,
     "engagement_score": null,
     "role_distribution": {
       "技术研发": 0,
@@ -327,7 +332,7 @@
       "GPT": 0.7814,
       "Cursor/IDE": 0.0027,
       "Mivo": 0.0707,
-      "其他": 0.0
+      "其他": 0
     },
     "avg_active_days": 6.1,
     "ai_platform_count_avg": 0.95,
@@ -351,10 +356,11 @@
       "count": 0,
       "top_roles": [],
       "avg_ai_cost": 0,
-      "avg_cr": 0.0
+      "avg_cr": 0
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": false
   },
   {
     "id": "P-07",
@@ -365,8 +371,8 @@
     "ai_cost": 2259742,
     "ai_penetration": 96.4,
     "power_user_ratio": 46.4,
-    "revenue": 19865232,
-    "profit": 4593707,
+    "revenue": 216980009,
+    "profit": 50175230,
     "engagement_score": 64.3,
     "role_distribution": {
       "技术研发": 151,
@@ -399,10 +405,10 @@
     "engagement_dimensions": {
       "overall": 64.3,
       "career_development": 48.3,
-      "compensation_recognition": 48.0,
+      "compensation_recognition": 48,
       "management_leadership": 75.2,
       "work_life_balance": 60.2,
-      "stay_intention": 63.0
+      "stay_intention": 63
     },
     "power_user_profile": {
       "count": 143,
@@ -414,7 +420,8 @@
       "avg_cr": 1.01
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": false
   },
   {
     "id": "P-08",
@@ -423,10 +430,10 @@
     "headcount": 10,
     "labor_cost": 46626,
     "ai_cost": 0,
-    "ai_penetration": 0.0,
-    "power_user_ratio": 0.0,
-    "revenue": 96362,
-    "profit": 59610,
+    "ai_penetration": 0,
+    "power_user_ratio": 0,
+    "revenue": -954933,
+    "profit": -590726,
     "engagement_score": null,
     "role_distribution": {
       "技术研发": 0,
@@ -439,15 +446,15 @@
       "其他": 2
     },
     "ai_model_mix": {
-      "Claude Opus": 0.0,
-      "Claude Sonnet": 0.0,
-      "GPT": 0.0,
-      "Cursor/IDE": 0.0,
-      "Mivo": 0.0,
-      "其他": 0.0
+      "Claude Opus": 0,
+      "Claude Sonnet": 0,
+      "GPT": 0,
+      "Cursor/IDE": 0,
+      "Mivo": 0,
+      "其他": 0
     },
-    "avg_active_days": 0.0,
-    "ai_platform_count_avg": 0.0,
+    "avg_active_days": 0,
+    "ai_platform_count_avg": 0,
     "recent_turnover": {
       "total_exits": 1,
       "power_user_exits": 0,
@@ -455,7 +462,7 @@
       "involuntary_exits": 0
     },
     "avg_annual_salary": 35629,
-    "salary_cost_ratio": 1.0,
+    "salary_cost_ratio": 1,
     "engagement_dimensions": {
       "overall": null,
       "career_development": null,
@@ -468,10 +475,11 @@
       "count": 0,
       "top_roles": [],
       "avg_ai_cost": 0,
-      "avg_cr": 0.0
+      "avg_cr": 0
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": false
   },
   {
     "id": "P-09",
@@ -482,8 +490,8 @@
     "ai_cost": 58340,
     "ai_penetration": 93.1,
     "power_user_ratio": 10.3,
-    "revenue": 1832854,
-    "profit": 1038205,
+    "revenue": 0,
+    "profit": 0,
     "engagement_score": 64.2,
     "role_distribution": {
       "技术研发": 0,
@@ -518,7 +526,7 @@
       "career_development": 47.6,
       "compensation_recognition": 48.2,
       "management_leadership": 74.6,
-      "work_life_balance": 58.0,
+      "work_life_balance": 58,
       "stay_intention": 63.7
     },
     "power_user_profile": {
@@ -531,7 +539,8 @@
       "avg_cr": 1.12
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": true
   },
   {
     "id": "P-10",
@@ -541,9 +550,9 @@
     "labor_cost": 257558,
     "ai_cost": 279,
     "ai_penetration": 45.5,
-    "power_user_ratio": 0.0,
-    "revenue": 305188,
-    "profit": 97815,
+    "power_user_ratio": 0,
+    "revenue": 0,
+    "profit": 0,
     "engagement_score": 64.8,
     "role_distribution": {
       "技术研发": 0,
@@ -556,12 +565,12 @@
       "其他": 0
     },
     "ai_model_mix": {
-      "Claude Opus": 0.0,
-      "Claude Sonnet": 0.0,
-      "GPT": 1.0,
-      "Cursor/IDE": 0.0,
-      "Mivo": 0.0,
-      "其他": 0.0
+      "Claude Opus": 0,
+      "Claude Sonnet": 0,
+      "GPT": 1,
+      "Cursor/IDE": 0,
+      "Mivo": 0,
+      "其他": 0
     },
     "avg_active_days": 1.7,
     "ai_platform_count_avg": 0.45,
@@ -576,19 +585,20 @@
     "engagement_dimensions": {
       "overall": 64.8,
       "career_development": 48.8,
-      "compensation_recognition": 49.0,
-      "management_leadership": 75.0,
-      "work_life_balance": 59.0,
+      "compensation_recognition": 49,
+      "management_leadership": 75,
+      "work_life_balance": 59,
       "stay_intention": 64.5
     },
     "power_user_profile": {
       "count": 0,
       "top_roles": [],
       "avg_ai_cost": 0,
-      "avg_cr": 0.0
+      "avg_cr": 0
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": true
   },
   {
     "id": "P-11",
@@ -597,10 +607,10 @@
     "headcount": 287,
     "labor_cost": 9014075,
     "ai_cost": 768522,
-    "ai_penetration": 92.0,
+    "ai_penetration": 92,
     "power_user_ratio": 10.6,
-    "revenue": 32768002,
-    "profit": 22778808,
+    "revenue": 45597365,
+    "profit": 31697191,
     "engagement_score": null,
     "role_distribution": {
       "技术研发": 65,
@@ -645,10 +655,11 @@
         "管理"
       ],
       "avg_ai_cost": 18557,
-      "avg_cr": 1.0
+      "avg_cr": 1
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": false
   },
   {
     "id": "P-12",
@@ -658,9 +669,9 @@
     "labor_cost": 1467230,
     "ai_cost": 47113,
     "ai_penetration": 88.9,
-    "power_user_ratio": 0.0,
-    "revenue": 4427882,
-    "profit": 3106613,
+    "power_user_ratio": 0,
+    "revenue": 0,
+    "profit": 0,
     "engagement_score": 64.4,
     "role_distribution": {
       "技术研发": 0,
@@ -702,10 +713,11 @@
       "count": 0,
       "top_roles": [],
       "avg_ai_cost": 0,
-      "avg_cr": 0.0
+      "avg_cr": 0
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": true
   },
   {
     "id": "P-13",
@@ -714,10 +726,10 @@
     "headcount": 34,
     "labor_cost": 289466,
     "ai_cost": 421225,
-    "ai_penetration": 100.0,
-    "power_user_ratio": 60.0,
-    "revenue": 1501781,
-    "profit": 800925,
+    "ai_penetration": 100,
+    "power_user_ratio": 60,
+    "revenue": 0,
+    "profit": 0,
     "engagement_score": 64.1,
     "role_distribution": {
       "技术研发": 28,
@@ -765,7 +777,8 @@
       "avg_cr": 1.05
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": true
   },
   {
     "id": "P-14",
@@ -776,8 +789,8 @@
     "ai_cost": 138171,
     "ai_penetration": 83.3,
     "power_user_ratio": 23.3,
-    "revenue": 6892129,
-    "profit": 4040038,
+    "revenue": 0,
+    "profit": 0,
     "engagement_score": 64.6,
     "role_distribution": {
       "技术研发": 9,
@@ -825,7 +838,8 @@
       "avg_cr": 1.14
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": true
   },
   {
     "id": "P-15",
@@ -836,8 +850,8 @@
     "ai_cost": 441239,
     "ai_penetration": 88.7,
     "power_user_ratio": 25.8,
-    "revenue": 4521375,
-    "profit": 1578503,
+    "revenue": 0,
+    "profit": 0,
     "engagement_score": 65.3,
     "role_distribution": {
       "技术研发": 32,
@@ -885,7 +899,8 @@
       "avg_cr": 1.11
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": true
   },
   {
     "id": "P-16",
@@ -896,8 +911,8 @@
     "ai_cost": 42180,
     "ai_penetration": 79.3,
     "power_user_ratio": 6.9,
-    "revenue": 1056700,
-    "profit": 355994,
+    "revenue": 0,
+    "profit": 0,
     "engagement_score": 65.1,
     "role_distribution": {
       "技术研发": 0,
@@ -930,7 +945,7 @@
     "engagement_dimensions": {
       "overall": 65.1,
       "career_development": 48.8,
-      "compensation_recognition": 49.0,
+      "compensation_recognition": 49,
       "management_leadership": 75.1,
       "work_life_balance": 59.1,
       "stay_intention": 64.8
@@ -945,7 +960,8 @@
       "avg_cr": 1.08
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": true
   },
   {
     "id": "P-17",
@@ -954,10 +970,10 @@
     "headcount": 5,
     "labor_cost": 94980,
     "ai_cost": 0,
-    "ai_penetration": 0.0,
-    "power_user_ratio": 0.0,
-    "revenue": 277858,
-    "profit": 192594,
+    "ai_penetration": 0,
+    "power_user_ratio": 0,
+    "revenue": 0,
+    "profit": 0,
     "engagement_score": null,
     "role_distribution": {
       "技术研发": 0,
@@ -970,15 +986,15 @@
       "其他": 3
     },
     "ai_model_mix": {
-      "Claude Opus": 0.0,
-      "Claude Sonnet": 0.0,
-      "GPT": 0.0,
-      "Cursor/IDE": 0.0,
-      "Mivo": 0.0,
-      "其他": 0.0
+      "Claude Opus": 0,
+      "Claude Sonnet": 0,
+      "GPT": 0,
+      "Cursor/IDE": 0,
+      "Mivo": 0,
+      "其他": 0
     },
-    "avg_active_days": 0.0,
-    "ai_platform_count_avg": 0.0,
+    "avg_active_days": 0,
+    "ai_platform_count_avg": 0,
     "recent_turnover": {
       "total_exits": 0,
       "power_user_exits": 0,
@@ -986,7 +1002,7 @@
       "involuntary_exits": 0
     },
     "avg_annual_salary": 0,
-    "salary_cost_ratio": 0.0,
+    "salary_cost_ratio": 0,
     "engagement_dimensions": {
       "overall": null,
       "career_development": null,
@@ -999,10 +1015,11 @@
       "count": 0,
       "top_roles": [],
       "avg_ai_cost": 0,
-      "avg_cr": 0.0
+      "avg_cr": 0
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": true
   },
   {
     "id": "P-18",
@@ -1012,10 +1029,10 @@
     "labor_cost": 2858071,
     "ai_cost": 137341,
     "ai_penetration": 90.4,
-    "power_user_ratio": 11.0,
-    "revenue": 10786837,
-    "profit": 7999709,
-    "engagement_score": 65.0,
+    "power_user_ratio": 11,
+    "revenue": 3891169,
+    "profit": 2885760,
+    "engagement_score": 65,
     "role_distribution": {
       "技术研发": 12,
       "产品": 25,
@@ -1034,7 +1051,7 @@
       "Mivo": 0.0286,
       "其他": 0.0833
     },
-    "avg_active_days": 13.0,
+    "avg_active_days": 13,
     "ai_platform_count_avg": 2.26,
     "recent_turnover": {
       "total_exits": 2,
@@ -1045,7 +1062,7 @@
     "avg_annual_salary": 378913,
     "salary_cost_ratio": 0.761,
     "engagement_dimensions": {
-      "overall": 65.0,
+      "overall": 65,
       "career_development": 48.9,
       "compensation_recognition": 50.5,
       "management_leadership": 75.1,
@@ -1062,7 +1079,8 @@
       "avg_cr": 1.04
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": false
   },
   {
     "id": "P-19",
@@ -1071,10 +1089,10 @@
     "headcount": 10,
     "labor_cost": 311919,
     "ai_cost": 10106,
-    "ai_penetration": 90.0,
-    "power_user_ratio": 10.0,
-    "revenue": 555022,
-    "profit": 309494,
+    "ai_penetration": 90,
+    "power_user_ratio": 10,
+    "revenue": 0,
+    "profit": 0,
     "engagement_score": 52.3,
     "role_distribution": {
       "技术研发": 0,
@@ -1087,15 +1105,15 @@
       "其他": 0
     },
     "ai_model_mix": {
-      "Claude Opus": 0.0,
-      "Claude Sonnet": 0.0,
+      "Claude Opus": 0,
+      "Claude Sonnet": 0,
       "GPT": 0.97,
       "Cursor/IDE": 0.03,
-      "Mivo": 0.0,
-      "其他": 0.0
+      "Mivo": 0,
+      "其他": 0
     },
     "avg_active_days": 9.6,
-    "ai_platform_count_avg": 1.0,
+    "ai_platform_count_avg": 1,
     "recent_turnover": {
       "total_exits": 0,
       "power_user_exits": 0,
@@ -1118,10 +1136,11 @@
         "职能支持"
       ],
       "avg_ai_cost": 6107,
-      "avg_cr": 1.0
+      "avg_cr": 1
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": true
   },
   {
     "id": "P-20",
@@ -1130,10 +1149,10 @@
     "headcount": 25,
     "labor_cost": 602732,
     "ai_cost": 48462,
-    "ai_penetration": 90.0,
-    "power_user_ratio": 10.0,
-    "revenue": 1882149,
-    "profit": 1301537,
+    "ai_penetration": 90,
+    "power_user_ratio": 10,
+    "revenue": 1710714,
+    "profit": 1182987,
     "engagement_score": 65.4,
     "role_distribution": {
       "技术研发": 8,
@@ -1169,7 +1188,7 @@
       "compensation_recognition": 49.3,
       "management_leadership": 75.5,
       "work_life_balance": 58.9,
-      "stay_intention": 65.0
+      "stay_intention": 65
     },
     "power_user_profile": {
       "count": 2,
@@ -1178,10 +1197,11 @@
         "产品"
       ],
       "avg_ai_cost": 9823,
-      "avg_cr": 1.0
+      "avg_cr": 1
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": false
   },
   {
     "id": "P-21",
@@ -1191,9 +1211,9 @@
     "labor_cost": 730533,
     "ai_cost": 11128,
     "ai_penetration": 55.2,
-    "power_user_ratio": 0.0,
-    "revenue": 1865764,
-    "profit": 1077848,
+    "power_user_ratio": 0,
+    "revenue": 0,
+    "profit": 0,
     "engagement_score": 64.5,
     "role_distribution": {
       "技术研发": 0,
@@ -1235,10 +1255,11 @@
       "count": 0,
       "top_roles": [],
       "avg_ai_cost": 0,
-      "avg_cr": 0.0
+      "avg_cr": 0
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": true
   },
   {
     "id": "P-22",
@@ -1249,8 +1270,8 @@
     "ai_cost": 429407,
     "ai_penetration": 97.7,
     "power_user_ratio": 27.3,
-    "revenue": 8795937,
-    "profit": 5492844,
+    "revenue": 24786067,
+    "profit": 15478283,
     "engagement_score": null,
     "role_distribution": {
       "技术研发": 27,
@@ -1298,7 +1319,8 @@
       "avg_cr": 1.08
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": false
   },
   {
     "id": "P-23",
@@ -1309,8 +1331,8 @@
     "ai_cost": 265693,
     "ai_penetration": 92.3,
     "power_user_ratio": 11.5,
-    "revenue": 3230983,
-    "profit": 1012183,
+    "revenue": 0,
+    "profit": 0,
     "engagement_score": 63.8,
     "role_distribution": {
       "技术研发": 4,
@@ -1345,7 +1367,7 @@
       "career_development": 47.7,
       "compensation_recognition": 47.9,
       "management_leadership": 74.2,
-      "work_life_balance": 57.0,
+      "work_life_balance": 57,
       "stay_intention": 63.8
     },
     "power_user_profile": {
@@ -1358,7 +1380,8 @@
       "avg_cr": 0.99
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": true
   },
   {
     "id": "P-24",
@@ -1369,8 +1392,8 @@
     "ai_cost": 9205,
     "ai_penetration": 38.1,
     "power_user_ratio": 4.8,
-    "revenue": 602047,
-    "profit": 263816,
+    "revenue": 0,
+    "profit": 0,
     "engagement_score": 64.3,
     "role_distribution": {
       "技术研发": 0,
@@ -1387,8 +1410,8 @@
       "Claude Sonnet": 0.0142,
       "GPT": 0.3815,
       "Cursor/IDE": 0.0842,
-      "Mivo": 0.0,
-      "其他": 0.0
+      "Mivo": 0,
+      "其他": 0
     },
     "avg_active_days": 2.9,
     "ai_platform_count_avg": 0.48,
@@ -1414,10 +1437,11 @@
         "管理"
       ],
       "avg_ai_cost": 8627,
-      "avg_cr": 1.0
+      "avg_cr": 1
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": true
   },
   {
     "id": "P-25",
@@ -1426,10 +1450,10 @@
     "headcount": 11,
     "labor_cost": 351856,
     "ai_cost": 56043,
-    "ai_penetration": 100.0,
+    "ai_penetration": 100,
     "power_user_ratio": 36.4,
-    "revenue": 1046840,
-    "profit": 615991,
+    "revenue": 251978,
+    "profit": 148271,
     "engagement_score": 64.7,
     "role_distribution": {
       "技术研发": 9,
@@ -1446,7 +1470,7 @@
       "Claude Sonnet": 0.0357,
       "GPT": 0.7045,
       "Cursor/IDE": 0.0389,
-      "Mivo": 0.0,
+      "Mivo": 0,
       "其他": 0.0053
     },
     "avg_active_days": 20.1,
@@ -1477,7 +1501,8 @@
       "avg_cr": 1.04
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": false
   },
   {
     "id": "P-26",
@@ -1488,8 +1513,8 @@
     "ai_cost": 66233,
     "ai_penetration": 86.3,
     "power_user_ratio": 2.7,
-    "revenue": 4067594,
-    "profit": 2718240,
+    "revenue": 2087370,
+    "profit": 1394921,
     "engagement_score": 64.9,
     "role_distribution": {
       "技术研发": 2,
@@ -1533,10 +1558,11 @@
         "产品"
       ],
       "avg_ai_cost": 13025,
-      "avg_cr": 1.0
+      "avg_cr": 1
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": false
   },
   {
     "id": "P-27",
@@ -1547,8 +1573,8 @@
     "ai_cost": 146451,
     "ai_penetration": 95.8,
     "power_user_ratio": 16.7,
-    "revenue": 1015455,
-    "profit": 536298,
+    "revenue": 0,
+    "profit": 0,
     "engagement_score": 64.2,
     "role_distribution": {
       "技术研发": 3,
@@ -1580,8 +1606,8 @@
     "salary_cost_ratio": 0.788,
     "engagement_dimensions": {
       "overall": 64.2,
-      "career_development": 48.0,
-      "compensation_recognition": 48.0,
+      "career_development": 48,
+      "compensation_recognition": 48,
       "management_leadership": 74.7,
       "work_life_balance": 58.3,
       "stay_intention": 63.9
@@ -1596,6 +1622,7 @@
       "avg_cr": 0.94
     },
     "revenue_is_simulated": true,
-    "profit_is_simulated": true
+    "profit_is_simulated": true,
+    "is_cost_center": true
   }
 ]

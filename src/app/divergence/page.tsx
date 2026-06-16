@@ -22,6 +22,7 @@ const verdictMeta: Record<LeveragePoint['verdict'], { label: string; color: stri
   underperforming: { label: '待改善', color: '#dc2626' },
   high_potential: { label: '待加码', color: '#2563eb' },
   low_base: { label: '基础区', color: '#64748b' },
+  support: { label: '支撑部门', color: '#94a3b8' },
 }
 
 const models = ['Claude Opus', 'Claude Sonnet', 'GPT', 'Cursor/IDE', 'Mivo', '其他']
@@ -115,6 +116,7 @@ export default function DivergencePage() {
     leverage.points.forEach(point => groups.set(point.verdict, [...(groups.get(point.verdict) || []), point]))
     const maxHC = Math.max(...leverage.points.map(point => point.headcount), 1)
     const seriesItems = [...groups.entries()]
+    const areaVerdict = seriesItems.find(([verdict]) => verdict !== 'support')?.[0]
     return {
       backgroundColor: 'transparent',
       grid: { top: 50, right: 28, bottom: 46, left: 52 },
@@ -137,12 +139,13 @@ export default function DivergencePage() {
       },
       xAxis: { type: 'log', name: 'AI投入强度', axisLabel: { color: '#475569', formatter: (v: number) => formatRatio(v) }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
       yAxis: { name: '人效', axisLabel: { color: '#475569' }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
-      series: seriesItems.map(([verdict, points], index) => ({
+      series: seriesItems.map(([verdict, points]) => ({
         name: `${verdictMeta[verdict].label} (${points.length})`,
         type: 'scatter',
         data: points.map(point => [point.ai_intensity, point.productivity, point.headcount, point.name, point.project_id, point.trend]),
+        symbol: verdict === 'support' ? 'triangle' : 'circle',
         symbolSize: (value: number[]) => Math.max(12, Math.min(52, 12 + (value[2] / maxHC) * 42)),
-        itemStyle: { color: verdictMeta[verdict].color, opacity: 0.9 },
+        itemStyle: { color: verdictMeta[verdict].color, opacity: verdict === 'support' ? 0.4 : 0.9 },
         label: { show: false },
         emphasis: { label: { show: true, formatter: '{@[3]}', color: '#1a2332' } },
         markLine: verdict === 'underperforming' ? {
@@ -152,7 +155,7 @@ export default function DivergencePage() {
           label: { show: false },
           data: [{ xAxis: leverage.medianIntensity }, { yAxis: leverage.medianProductivity }],
         } : undefined,
-        markArea: index === 0 ? {
+        markArea: verdict === areaVerdict ? {
           silent: true,
           label: { color: '#64748b', fontSize: 10, position: 'insideTopLeft' },
           data: [
@@ -404,7 +407,7 @@ export default function DivergencePage() {
         <>
           <section className="grid grid-cols-12 gap-5">
             <Card className="col-span-7 p-5">
-              <SectionHeader title={<TermTooltip term="leverage_matrix">项目分布矩阵</TermTooltip>} caption="X=AI投入强度，Y=人效，气泡=人数" right={<FactTag />} />
+              <SectionHeader title={<TermTooltip term="leverage_matrix">项目分布矩阵</TermTooltip>} caption="X=AI投入强度，Y=人效，气泡=人数；支撑部门以灰色三角显示，不参与象限分类" right={<FactTag />} />
               <ReactECharts option={leverageOption} style={{ height: 420 }} onEvents={{ click: (params: { data?: (number | string)[] }) => {
                 const id = params.data?.[4]
                 if (typeof id === 'string') router.push(`/attribution?id=${id}`)
@@ -461,7 +464,7 @@ function Insight({ text }: { text: string }) {
 }
 
 function DivergenceSynthesis() {
-  const storageKey = 'divergence-synthesis-v1'
+  const storageKey = 'divergence-synthesis-v2'
   const fallback = '分化研判：先看右下高投入低人效气泡，再看高价模型集中角色；涉及部门依赖高且薪酬位档低的人才，先做关键人才保护检查。'
   const [answer, setAnswer] = useState('')
   const [isLoading, setIsLoading] = useState(true)

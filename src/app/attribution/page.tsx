@@ -29,12 +29,14 @@ const quadrantLabel: Record<string, string> = {
   underperforming: '待改善',
   high_potential: '待加码',
   low_base: '基础区',
+  support: '支撑部门',
 }
 const quadrantTone: Record<string, string> = {
   amplifier: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700',
   underperforming: 'border-red-500/40 bg-red-500/10 text-red-700',
   high_potential: 'border-blue-500/40 bg-blue-500/10 text-blue-700',
   low_base: 'border-zinc-600/40 bg-zinc-700/20 text-slate-600',
+  support: 'border-slate-300 bg-slate-100 text-slate-600',
 }
 
 function severityScore(severity: Severity) {
@@ -245,7 +247,7 @@ function AttributionInner() {
     } else if (!selectedId) {
       const target = [...projects]
         .filter(p => p.quadrant === 'underperforming')
-        .sort((a, b) => b.ai_cost - a.ai_cost)[0] || projects[0]
+        .sort((a, b) => a.productivity - b.productivity || b.ai_cost - a.ai_cost)[0] || projects[0]
       setSelectedId(target.id)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -261,7 +263,7 @@ function AttributionInner() {
     setAi(null)
     setRevealed(0)
 
-    const cacheKey = `attribution-v2-${selectedId}`
+    const cacheKey = `attribution-v3-${selectedId}`
     try {
       const cached = sessionStorage.getItem(cacheKey)
       if (cached) {

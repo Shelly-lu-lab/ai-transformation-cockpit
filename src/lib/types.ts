@@ -36,6 +36,7 @@ export interface Project {
     avg_ai_cost: number
     avg_cr: number
   }
+  is_cost_center?: boolean
   revenue_is_simulated: boolean
   profit_is_simulated: boolean
 }
@@ -47,6 +48,7 @@ export interface MonthlyRecord {
   ai_cost: number
   headcount: number
   revenue: number
+  profit?: number
   exits_count: number
   productivity: number
 }
@@ -82,7 +84,7 @@ export interface RoleDeptCell {
   sample_size: number
 }
 
-export type Quadrant = 'amplifier' | 'underperforming' | 'high_potential' | 'low_base'
+export type Quadrant = 'amplifier' | 'underperforming' | 'high_potential' | 'low_base' | 'support'
 
 export interface ProjectWithMetrics extends Project {
   productivity: number
