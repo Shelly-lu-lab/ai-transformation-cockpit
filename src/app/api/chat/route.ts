@@ -58,7 +58,7 @@ function verdictContext(): string {
     .sort((a, b) => b.ai_intensity - a.ai_intensity).slice(0, 3)
   const confirmed = lm.points.filter(p => p.verdict === 'amplifier_confirmed')
 
-  return `【北极星】人效 ${vi.northStar.productivity.toFixed(2)}｜AI/人力 ${(vi.northStar.aiToLaborRatio * 100).toFixed(1)}%｜关键高流失风险人才 ${vi.northStar.criticalTalentCount} 人
+  return `【核心指标】人效 ${vi.northStar.productivity.toFixed(2)}｜AI/人力 ${(vi.northStar.aiToLaborRatio * 100).toFixed(1)}%｜关键高流失风险人才 ${vi.northStar.criticalTalentCount} 人
 
 【钱】有效样本已验证 ${vi.moneyDim.amplifierConfirmed} 个（${confirmed.map(p => `${p.name} 人效趋势+${(p.monthlyRate * 100).toFixed(1)}%/月`).join('、') || '无'}）；未验证有效样本 ${vi.moneyDim.amplifierUnproven} 个（高投入高人效但趋势未上行）；待改善 ${vi.moneyDim.underperforming} 个、AI 月投入 ${fmtWan(vi.moneyDim.underperformingAiCost)}（Top: ${topUnder.map(p => `${p.name}(AI投入强度${(p.ai_intensity * 100).toFixed(0)}%人效${p.productivity.toFixed(2)})`).join('、')}）；人效人效在改善项目 ${vi.moneyDim.trendUpCount}/${projects.length}
 
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
 
     if (mode === 'verdict') {
       system = VERDICT_PROMPT
-      user = `全公司聚合分析结果如下，请生成健康度总评：\n\n${verdictContext()}`
+      user = `全公司项目分类汇总结果如下，请生成健康度总评：\n\n${verdictContext()}`
       maxTokens = 1800
     } else if (mode === 'attribution') {
       if (!projectId) return NextResponse.json({ error: 'missing_project_id' }, { status: 400 })

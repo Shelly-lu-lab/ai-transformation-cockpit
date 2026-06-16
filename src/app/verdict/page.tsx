@@ -60,6 +60,7 @@ export default function VerdictPage() {
   const [ai, setAi] = useState<VerdictResponse | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiFailed, setAiFailed] = useState(false)
+  const [dimensionOpen, setDimensionOpen] = useState(true)
   const ran = useRef(false)
 
   const vi = projects.length > 0 ? buildVerdictInputs(projects, monthlyTrend, talentRisk) : null
@@ -85,6 +86,9 @@ export default function VerdictPage() {
     leverage ? Math.max(30, 90 - getLeverageMatrix(projects, monthlyTrend).points.filter(p => p.verdict === 'underperforming').length * 5) : 55,
     projects.length > 0 ? Math.round((trendUpCount / projects.length) * 100) : 55,
   ]
+  const dimensionColors = ['bg-blue-600', 'bg-cyan-600', 'bg-amber-600', 'bg-violet-600', 'bg-emerald-600']
+  const trendInsight = ai?.dimension_insights.find(item => item.key === 'trend')?.judgment
+  const moneyInsight = ai?.dimension_insights.find(item => item.key === 'money')?.judgment
   const radarOption = {
     backgroundColor: 'transparent',
     radar: {
@@ -181,7 +185,7 @@ export default function VerdictPage() {
       </header>
       <AiBriefing title="本期洞察" prompt="基于总体判断页数据，给经营层一句 AI 转型健康度洞察" />
 
-      {/* 北极星指标带 */}
+      {/* 核心指标 */}
       {isLoading || !vi ? (
         <div className="grid grid-cols-6 gap-3">{[0, 1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-32" />)}</div>
       ) : (
@@ -227,11 +231,40 @@ export default function VerdictPage() {
             <Skeleton className="h-12" />
           </div>
         ) : ai ? (
-          <div className="mt-5 flex items-start gap-6">
+          <div className="mt-5 grid grid-cols-[420px_1fr] gap-6">
             <div className="grid min-h-[260px] w-[420px] shrink-0 place-items-center">
               <ReactECharts option={radarOption} style={{ height: 260, width: '100%' }} />
             </div>
-            <p className="text-[15px] leading-relaxed text-slate-800">{ai.overall}</p>
+            <div>
+              <p className="text-[15px] leading-relaxed text-slate-800">{ai.overall}</p>
+              {ai.dimension_insights.length > 0 ? (
+                <div className="mt-4 rounded-xl border border-zinc-200 bg-slate-50/80 p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-semibold text-[#1a2332]">按维度解读</div>
+                    <button
+                      type="button"
+                      onClick={() => setDimensionOpen(value => !value)}
+                      className="rounded-md px-2 py-1 text-xs text-slate-500 hover:bg-white hover:text-blue-700"
+                    >
+                      {dimensionOpen ? '收起' : '展开'}
+                    </button>
+                  </div>
+                  {dimensionOpen ? (
+                    <div className="mt-3 space-y-2">
+                      {ai.dimension_insights.slice(0, 5).map((item, index) => (
+                        <div key={item.key} className="grid grid-cols-[92px_1fr] items-start gap-3 rounded-lg bg-white px-3 py-2 text-sm shadow-[var(--shadow-card)]">
+                          <div className="flex items-center gap-2 font-medium text-slate-700">
+                            <span className={`h-2 w-2 rounded-full ${dimensionColors[index] || 'bg-slate-400'}`} />
+                            {item.label}
+                          </div>
+                          <div className="leading-6 text-slate-700">{item.judgment}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           </div>
         ) : (
           <div className="mt-5 rounded-lg border border-zinc-200 bg-slate-50/80 p-4 text-sm text-slate-500">
@@ -259,12 +292,12 @@ export default function VerdictPage() {
         <Card className="p-6">
           <SectionHeader title="人效 vs AI 投入趋势" caption="左轴人效，右轴 AI/人力投入比" right={<JudgmentTag />} />
           <ReactECharts option={trendOption} style={{ height: 300 }} />
-          <p className="mt-2 text-sm text-slate-600"><JudgmentTag /> <span className="ml-2">趋势判断：观察 AI 投入比是否伴随人效同步上行，背离处进入根因诊断。</span></p>
+          <p className="mt-2 text-sm text-slate-600"><JudgmentTag /> <span className="ml-2">{trendInsight || '趋势判断：观察 AI 投入比是否伴随人效同步上行，背离处进入根因诊断。'}</span></p>
         </Card>
         <Card className="p-6">
-          <SectionHeader title="部门评级分布" caption="按杠杆矩阵 verdict 聚合" right={<FactTag />} />
+          <SectionHeader title="部门评级分布" caption={<span>按<TermTooltip term="dist_aggregation">项目分类汇总</TermTooltip>（已变好 / 待改善 / 暂观察）</span>} right={<FactTag />} />
           <ReactECharts option={ratingOption} style={{ height: 300 }} />
-          <p className="mt-2 text-sm text-slate-600"><JudgmentTag /> <span className="ml-2">评级分布用于判断组合健康度，C 级（待改善）建议先做根因诊断 + 护栏检查。</span></p>
+          <p className="mt-2 text-sm text-slate-600"><JudgmentTag /> <span className="ml-2">{moneyInsight || '评级分布用于判断组合健康度，C 级（待改善）建议先做根因诊断 + 关键人才保护检查。'}</span></p>
         </Card>
       </div>
 

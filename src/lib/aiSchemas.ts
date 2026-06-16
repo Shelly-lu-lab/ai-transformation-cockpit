@@ -7,6 +7,7 @@ export type AiMode = 'verdict' | 'attribution' | 'decision' | 'drilldown'
 
 export type Grade = 'A' | 'B' | 'C'
 export type Severity = 'high' | 'medium' | 'low' | 'none'
+export type DimensionInsight = { key: string; label: string; judgment: string }
 
 // ── verdict ──
 export interface VerdictFinding {
@@ -20,6 +21,7 @@ export interface VerdictFinding {
 export interface VerdictResponse {
   grades: { money: Grade; efficiency: Grade; people: Grade }
   overall: string        // 总评语 1-2 句
+  dimension_insights: DimensionInsight[]
   findings: VerdictFinding[]
 }
 
@@ -38,10 +40,10 @@ export interface AttributionResponse {
 // ── decision ──
 export interface ActionCard {
   action: string
-  scope: string          // 影响范围
-  amount: string         // 预计金额/量化影响
-  benchmark: string      // 参照标杆
-  validation: string     // 验证方式
+  scope: string          // 覆盖范围
+  amount: string         // 预计金额/预期收益
+  benchmark: string      // 参考标杆项目
+  validation: string     // 怎么验证生效
   risk: string
   guardrail: string      // 护栏提示（无则空串）
 }
@@ -50,6 +52,7 @@ export interface DecisionResponse {
   action_cards: ActionCard[]
   guardrail_hits: { project_id: string; count: number; note: string }[]
   simulation?: string    // 预设推演文本（可选）
+  simulation_dimensions: DimensionInsight[]
 }
 
 // ── drilldown ──
@@ -63,6 +66,13 @@ const STEP_KEYS = ['model', 'people', 'depth', 'attrition', 'org'] as const
 
 const str = (v: unknown, fb = ''): string => (typeof v === 'string' ? v : fb)
 const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : [])
+const dimensionInsights = (v: unknown): DimensionInsight[] => arr<Record<string, unknown>>(v)
+  .map(item => ({
+    key: str(item.key),
+    label: str(item.label),
+    judgment: str(item.judgment),
+  }))
+  .filter(item => item.key && item.label && item.judgment)
 
 export function normalizeVerdict(raw: unknown): VerdictResponse {
   const r = (raw ?? {}) as Record<string, unknown>
@@ -72,6 +82,7 @@ export function normalizeVerdict(raw: unknown): VerdictResponse {
   return {
     grades: { money: grade(g.money), efficiency: grade(g.efficiency), people: grade(g.people) },
     overall: str(r.overall, 'AI 总评生成失败，请点击重新分析。'),
+    dimension_insights: dimensionInsights(r.dimension_insights),
     findings: arr<Record<string, unknown>>(r.findings).slice(0, 5).map(f => ({
       severity: sev(f.severity),
       title: str(f.title, '（信号解析失败）'),
@@ -123,6 +134,7 @@ export function normalizeDecision(raw: unknown): DecisionResponse {
       note: str(h.note),
     })),
     simulation: typeof r.simulation === 'string' ? r.simulation : undefined,
+    simulation_dimensions: dimensionInsights(r.simulation_dimensions),
   }
 }
 

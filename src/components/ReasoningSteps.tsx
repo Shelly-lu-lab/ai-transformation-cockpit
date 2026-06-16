@@ -184,7 +184,7 @@ export function buildLocalReasoning(
     steps: [
       {
         title: '锁定分析对象',
-        content: `${highPotential.length} 个项目位于待加码（人效高但 AI 渗透低），加码 AI 投入预期可获得高回报。`,
+        content: `${highPotential.length} 个项目位于待加码（人效高但 AI 使用普及度低），加码 AI 投入预期可获得高回报。`,
         data_points: relatedProjects.slice(0, 3).map(p => ({ label: p.name, value: `人效 ${formatProductivity(p.productivity)}`, trend: 'up' as const })),
         chart_type: 'comparison_bar',
       },

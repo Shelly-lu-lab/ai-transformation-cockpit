@@ -5,10 +5,10 @@
  * 所有函数为纯函数；输出包含证据数字，既供图表渲染、也作为 AI 的证据包。
  *
  * Contract 关键口径：
- * - Power 阈值：月 AI 成本 ≥ ¥7,000 且活跃 ≥ 20 天（数据层已按此打 tier，本层直接用 tier）
+ * - 重度使用者 阈值：月 AI 成本 ≥ ¥7,000 且活跃 ≥ 20 天（数据层已按此打 tier，本层直接用 tier）
  * - 趋势斜率：近 6 个月人效 OLS slope；|月均变化率| < 2% 视为平稳
  * - 极值倍数：格子 headcount < 3 剔除；per_capita < ¥10 剔除；winsorize P5/P95
- * - 用户分层：Power / Regular / Light 三层（无 Zero）
+ * - 用户分层：重度使用者 / Regular / Light 三层（无 Zero）
  */
 
 import {
@@ -238,7 +238,7 @@ export function getModelMismatch(projects: ProjectWithMetrics[]): ModelMismatch[
 
 export interface PricingMismatch {
   highPaidLowUse: TalentRecord[]   // CR > 1.16 ∩ Light
-  highUseLowPaid: TalentRecord[]   // Power ∩ CR < 0.9（留不住的核心战力）
+  highUseLowPaid: TalentRecord[]   // 重度使用者 ∩ CR < 0.9（留不住的核心战力）
   crSource: 'real' | 'proxy'
   note: string
 }
@@ -268,7 +268,7 @@ export interface FragilityPoint {
   deptShare: number              // 个人 AI 成本占部门比
   cr: number
   tier: TalentRecord['tier']
-  cohortStayIntention: number | null  // 所在项目 cohort 留任意愿（护栏背景，不做个人结论）
+  同期入职队列StayIntention: number | null  // 所在项目 同期入职队列 留任意愿（护栏背景，不做个人结论）
   fragile: boolean               // 高依赖(占部门>10%) ∩ CR<0.9
 }
 
@@ -298,7 +298,7 @@ export function getDependencyFragility(
         deptShare: share,
         cr: t.cr_value,
         tier: t.tier,
-        cohortStayIntention: stayByProject.get(t.project_id) ?? null,
+        同期入职队列StayIntention: stayByProject.get(t.project_id) ?? null,
         fragile: hasShare ? share > 0.1 && t.cr_value < 0.9 : t.tier === 'power' && t.cr_value < 0.9,
       }
     })
@@ -319,7 +319,7 @@ export interface CriticalTalent {
   role: string | null
   cr: number
   active_days: number
-  signals: string[]              // ['Power 核心', 'CR 倒挂', '团队流失环境']
+  signals: string[]              // ['重度使用者 核心', '薪酬位档偏低', '团队流失环境']
 }
 
 export function getCriticalTalentList(
@@ -327,7 +327,7 @@ export function getCriticalTalentList(
   projects: ProjectWithMetrics[]
 ): CriticalTalent[] {
   const projById = new Map(projects.map(p => [p.id, p]))
-  // 团队流失环境：近期离职 > 3 或被动离职 > 0 或 cohort 留任意愿 < 60
+  // 团队流失环境：近期离职 > 3 或被动离职 > 0 或 同期入职队列 留任意愿 < 60
   const riskyEnv = new Set(
     projects
       .filter(p =>
@@ -342,11 +342,11 @@ export function getCriticalTalentList(
     .filter(t => t.tier === 'power' && t.cr_value < 0.9 && riskyEnv.has(t.project_id))
     .map(t => {
       const p = projById.get(t.project_id)
-      const signals = ['Power 核心（月AI≥¥7,000 且活跃≥20天）', `CR ${t.cr_value.toFixed(2)} 薪酬倒挂`]
+      const signals = ['重度使用者 核心（月AI≥¥7,000 且活跃≥20天）', `CR ${t.cr_value.toFixed(2)} 薪酬倒挂`]
       if (p) {
         if (p.recent_turnover.total_exits > 3) signals.push(`所在团队近期离职 ${p.recent_turnover.total_exits} 人`)
         if (p.engagement_dimensions?.stay_intention != null && p.engagement_dimensions.stay_intention < 60) {
-          signals.push(`cohort 留任意愿 ${p.engagement_dimensions.stay_intention.toFixed(0)}（偏低）`)
+          signals.push(`同期入职队列 留任意愿 ${p.engagement_dimensions.stay_intention.toFixed(0)}（偏低）`)
         }
       }
       return {
@@ -415,7 +415,7 @@ export function buildAttributionEvidence(
     domRole && !TECH_ROLES.has(domRole[0]) && expShare > 0.4 ? 'high'
     : expShare > 0.6 ? 'medium' : 'none'
 
-  // Step 2 用对人了吗（Power 用户的岗位覆盖 vs 团队岗位结构）
+  // Step 2 用对人了吗（重度使用者的岗位覆盖 vs 团队岗位结构）
   const powerRoles = new Map<string, number>()
   powerUsers.forEach(u => {
     if (u.role) powerRoles.set(u.role, (powerRoles.get(u.role) || 0) + 1)
@@ -447,7 +447,7 @@ export function buildAttributionEvidence(
   const attritionSeverity: EvidenceStep['severity'] =
     to.power_user_exits > 0 ? 'high' : to.total_exits > 3 ? 'medium' : 'none'
 
-  // Step 5 组织扛得住吗（CR 倒挂 + cohort 留任意愿，仅护栏口径）
+  // Step 5 组织扛得住吗（薪酬位档偏低 + 同期入职队列 留任意愿，仅护栏口径）
   const invertedCR = pTalents.filter(x => x.tier === 'power' && x.cr_value < 0.9)
   const stay = project.engagement_dimensions?.stay_intention ?? null
   const orgSeverity: EvidenceStep['severity'] =
@@ -471,8 +471,8 @@ export function buildAttributionEvidence(
       key: 'people',
       title: '用对人了吗',
       facts: [
-        { label: 'Power 用户', value: `${powerUsers.length} 人` },
-        { label: 'Power 覆盖的岗位', value: [...powerRoles.keys()].join('、') || '无' },
+        { label: '重度使用者', value: `${powerUsers.length} 人` },
+        { label: '重度使用者 覆盖的岗位', value: [...powerRoles.keys()].join('、') || '无' },
         { label: '未覆盖的主要岗位(≥5人)', value: uncoveredRoles.join('、') || '无' },
       ],
       finding: uncoveredRoles.length > 0
@@ -498,7 +498,7 @@ export function buildAttributionEvidence(
       title: '人在流失吗',
       facts: [
         { label: '近期离职', value: `${to.total_exits} 人（被动 ${to.involuntary_exits}）` },
-        { label: 'Power 用户流失', value: `${to.power_user_exits} 人` },
+        { label: '重度使用者流失', value: `${to.power_user_exits} 人` },
       ],
       finding: to.power_user_exits > 0
         ? `已有 ${to.power_user_exits} 名深度使用者离开，AI 经验在外流`
@@ -509,8 +509,8 @@ export function buildAttributionEvidence(
       key: 'org',
       title: '组织扛得住吗',
       facts: [
-        { label: 'Power 用户中 CR<0.9（薪酬倒挂）', value: `${invertedCR.length} 人` },
-        { label: 'cohort 留任意愿（团队级背景，非个人结论）', value: stay != null ? stay.toFixed(0) : '无调研数据' },
+        { label: '重度使用者中 CR<0.9（薪酬倒挂）', value: `${invertedCR.length} 人` },
+        { label: '同期入职队列 留任意愿（团队级背景，非个人结论）', value: stay != null ? stay.toFixed(0) : '无调研数据' },
       ],
       finding: invertedCR.length > 0
         ? `${invertedCR.length} 名核心使用者薪酬低于市场水位${stay != null && stay < 60 ? '，且所在群体留任意愿偏低' : ''}`
@@ -522,7 +522,7 @@ export function buildAttributionEvidence(
   return { project, benchmark, steps }
 }
 
-// ───────────────────────── ①章 判断页输入（北极星 + 健康度原料） ─────────────────────────
+// ───────────────────────── ①章 判断页输入（核心指标 + 健康度原料） ─────────────────────────
 
 export interface VerdictInputs {
   northStar: {
@@ -540,7 +540,7 @@ export interface VerdictInputs {
   }
   efficiencyDim: {  // 🚀 效率撬动了吗
     powerCount: number
-    powerCostShare: number      // Power 占个人 AI 成本比
+    powerCostShare: number      // 重度使用者 占个人 AI 成本比
     deepDeptCount: number       // amplifier + high_potential 数
     lowActiveProjects: number   // 活跃 < 12 天的项目数
   }

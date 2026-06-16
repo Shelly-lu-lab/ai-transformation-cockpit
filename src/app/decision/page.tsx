@@ -9,6 +9,7 @@ import { DecisionResponse } from '@/lib/aiSchemas'
 import {
   Card, SectionHeader, FactTag, JudgmentTag, Skeleton, CockpitTopbar, AiBriefing,
 } from '@/components/ui'
+import { TermTooltip } from '@/components/TermTooltip'
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false })
 
@@ -62,7 +63,7 @@ function DecisionInner() {
     }
     list.push(
       { label: '提升待改善项目 AI 效果', intent: '针对 AI 投入高但人效未改善的项目，制定提升 AI 使用效果的方案' },
-      { label: '待加码项目 AI 加码', intent: '为人效好但 AI 渗透低的项目制定加码 AI 的策略；如果给它们的 AI 预算翻倍，用已让人效变好的项目经验推演预期回报' },
+      { label: '待加码项目 AI 加码', intent: '为人效好但 AI 使用普及度低的项目制定加码 AI 的策略；如果给它们的 AI 预算翻倍，用已让人效变好的项目经验推演预期回报' },
       { label: '方法迁移：标杆 → 落后', intent: '把已让人效变好的项目使用方法迁移到同岗位差距最大的落后部门，给出迁移方案' },
     )
     return list.slice(0, 4)
@@ -91,7 +92,7 @@ function DecisionInner() {
       <header>
         <h1 className="text-[28px] font-semibold leading-tight text-[#1a2332]">钱和人，接下来怎么投？</h1>
         <p className="mt-1.5 text-sm text-slate-500">
-          AI 基于诊断证据生成可执行方案——每张行动卡都有参照标杆与验证方式，触及关键人才时自动亮护栏。
+          AI 基于诊断证据生成可执行方案——每张行动卡都有参考标杆项目与验证方法，触及关键人才时自动亮风险提示。
         </p>
       </header>
       <AiBriefing title="推演洞察" prompt="基于决策推演页，给出预算动作与人才护栏的一句经营提醒" />
@@ -124,7 +125,7 @@ function DecisionInner() {
 
       {/* 场景入口 */}
       <div>
-        <SectionHeader title="场景推演（结构化方案生成）" caption="这里用于生成行动卡与护栏校验；自由追问请使用右侧 AI 对话坞" />
+        <SectionHeader title="场景推演（结构化方案生成）" caption={<span>这里用于生成行动卡与<TermTooltip term="talent_guardrail_check">关键人才保护检查</TermTooltip>；自由追问请使用右侧 AI 对话坞</span>} />
         <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {scenarios.map(s => (
             <button
@@ -166,7 +167,7 @@ function DecisionInner() {
         <Card className="p-6">
           <div className="flex items-center gap-2 text-sm text-blue-700">
             <span className="h-2 w-2 animate-pulse rounded-full bg-blue-400" />
-            AI 正在生成方案（检索标杆 · 校验护栏 · 量化影响）…
+            AI 正在生成方案（检索参考标杆项目 · 做关键人才保护检查 · 计算预期收益）…
           </div>
           <div className="mt-5 grid grid-cols-3 gap-4">
             {[0, 1, 2].map(i => <Skeleton key={i} className="h-56" />)}
@@ -191,7 +192,7 @@ function DecisionInner() {
             </div>
             {ai.guardrail_hits.length > 0 && (
               <div className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/[0.08] px-4 py-3">
-                <div className="text-sm font-medium text-amber-700">⚠ 人才护栏命中</div>
+                <div className="text-sm font-medium text-amber-700">关键人才保护检查命中</div>
                 <ul className="mt-1.5 space-y-1">
                   {ai.guardrail_hits.map((h, i) => {
                     const name = projects.find(p => p.id === h.project_id)?.name || h.project_id
@@ -220,14 +221,17 @@ function DecisionInner() {
                 </div>
                 <p className="mt-3 text-sm font-medium leading-snug text-slate-900">{c.action}</p>
                 <dl className="mt-4 flex-1 space-y-2.5 border-t border-zinc-200/80 pt-3 text-xs leading-5">
-                  <div><dt className="text-slate-500">影响范围</dt><dd className="text-slate-700">{c.scope}</dd></div>
-                  <div><dt className="text-slate-500">量化影响</dt><dd className="whitespace-nowrap font-medium tabular-nums text-slate-800">{c.amount}</dd></div>
+                  <div><dt className="text-slate-500"><TermTooltip term="coverage_scope">覆盖范围</TermTooltip></dt><dd className="text-slate-700">{c.scope}</dd></div>
+                  <div><dt className="text-slate-500"><TermTooltip term="expected_value">预期收益</TermTooltip></dt><dd className="whitespace-nowrap font-medium tabular-nums text-slate-800">{c.amount}</dd></div>
                   <RoiMiniBar amount={c.amount} />
-                  <div><dt className="text-slate-500">参照标杆</dt><dd className="text-emerald-400/90">{c.benchmark}</dd></div>
-                  <div><dt className="text-slate-500">验证方式</dt><dd className="text-slate-700">{c.validation}</dd></div>
+                  <div className="rounded-lg bg-blue-50 px-2.5 py-2 text-[11px] leading-5 text-blue-800">
+                    AI 短判：参考 {c.benchmark || '标杆项目'}，预期收益为 {c.amount || '待测算'}。
+                  </div>
+                  <div><dt className="text-slate-500"><TermTooltip term="benchmark_project">参考标杆项目</TermTooltip></dt><dd className="text-emerald-400/90">{c.benchmark}</dd></div>
+                  <div><dt className="text-slate-500"><TermTooltip term="validation_method">怎么验证生效</TermTooltip></dt><dd className="text-slate-700">{c.validation}</dd></div>
                   <div><dt className="text-slate-500">风险</dt><dd className="text-slate-600">{c.risk}</dd></div>
                   {c.guardrail && (
-                    <div><dt className="text-amber-500/80">护栏提示</dt><dd className="text-amber-700">{c.guardrail}</dd></div>
+                    <div><dt className="text-amber-500/80">人才保护提示</dt><dd className="text-amber-700">{c.guardrail}</dd></div>
                   )}
                 </dl>
               </Card>
@@ -246,7 +250,19 @@ function DecisionInner() {
                   actionCards={ai.action_cards}
                   guardrailHits={ai.guardrail_hits}
                 />
-                <p className="whitespace-pre-line text-sm leading-relaxed text-slate-800">{ai.simulation}</p>
+                <div>
+                  <p className="whitespace-pre-line text-sm leading-relaxed text-slate-800">{ai.simulation}</p>
+                  {ai.simulation_dimensions.length > 0 ? (
+                    <div className="mt-3 space-y-2">
+                      {ai.simulation_dimensions.slice(0, 4).map(item => (
+                        <div key={item.key} className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm">
+                          <span className="font-medium text-blue-900">{item.label}：</span>
+                          <span className="text-blue-800">{item.judgment}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </Card>
           )}
@@ -256,7 +272,7 @@ function DecisionInner() {
           <div className="text-center">
             <div className="text-base font-medium text-slate-600">选择场景开始推演</div>
             <p className="mt-2 max-w-md text-xs leading-5 text-slate-500">
-              AI 将输出 2-3 张行动卡：动作 · 影响 · 量化收益 · 参照标杆 · 验证方式 · 护栏检查，全部基于真实数据实时生成
+              AI 将输出 2-3 张行动卡：动作 · 覆盖范围 · 预期收益 · 参考标杆项目 · 怎么验证生效 · 关键人才保护检查，全部基于真实数据实时生成
             </p>
           </div>
         </Card>

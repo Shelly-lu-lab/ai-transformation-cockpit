@@ -20,7 +20,7 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
   )
 }
 
-export function SectionHeader({ title, caption, right }: { title: string; caption?: string; right?: ReactNode }) {
+export function SectionHeader({ title, caption, right }: { title: ReactNode; caption?: ReactNode; right?: ReactNode }) {
   return (
     <div className="flex items-end justify-between">
       <div>
@@ -169,7 +169,7 @@ export function AiBriefing({ title = '本期洞察', prompt }: { title?: string;
     fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode: 'drilldown', message: `${prompt}。请只用一句话，不超过30字；必须用经营层大白话，禁止黑话和英文术语。`, chapter: pathname.replace('/', '') || 'home' }),
+      body: JSON.stringify({ mode: 'drilldown', message: `${prompt}。请只用一句话，不超过30字；必须读图不读概念，描述具体数字、比例或对比；必须用经营层大白话，禁止黑话和英文术语。`, chapter: pathname.replace('/', '') || 'home' }),
     })
       .then(res => res.json())
       .then(json => {

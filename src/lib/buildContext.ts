@@ -4,7 +4,7 @@ import { formatWan, formatPercent, formatRatio, formatProductivity } from './for
 
 export function buildOverviewContext(projects: ProjectWithMetrics[]): string {
   const lines = projects.map(p => {
-    return `${p.id} ${p.name} | 类型:${p.type} | 人数:${p.headcount} | 投入:${formatWan(p.labor_cost + p.ai_cost)} | 利润:${formatWan(p.profit)} | 人效:${formatProductivity(p.productivity)} | AI强度:${formatRatio(p.ai_intensity)} | 象限:${p.quadrant}`
+    return `${p.id} ${p.name} | 类型:${p.type} | 人数:${p.headcount} | 投入:${formatWan(p.labor_cost + p.ai_cost)} | 利润:${formatWan(p.profit)} | 人效:${formatProductivity(p.productivity)} | AI投入强度:${formatRatio(p.ai_intensity)} | 象限:${p.quadrant}`
   })
 
   return `公司共 ${projects.length} 个业务单元。
@@ -58,16 +58,16 @@ export function buildSignalContext(
 人数：${project.headcount}
 月人力成本：${formatWan(project.labor_cost)}
 月AI成本：${formatWan(project.ai_cost)}
-AI强度：${formatRatio(project.ai_intensity)}
+AI投入强度：${formatRatio(project.ai_intensity)}
 人效：${formatProductivity(project.productivity)}
 AI覆盖率：${formatPercent(project.ai_penetration)}
-Power用户：${project.power_user_profile.count}人 (${project.power_user_profile.top_roles.join('/')})
+重度使用者：${project.power_user_profile.count}人 (${project.power_user_profile.top_roles.join('/')})
 平均活跃天数：${project.avg_active_days}
 
 岗位分布：${roleStr}
 AI模型结构：${modelStr}
 
-近期离职：总${project.recent_turnover.total_exits}人(被动${project.recent_turnover.involuntary_exits}, Power流失${project.recent_turnover.power_user_exits})
+近期离职：总${project.recent_turnover.total_exits}人(被动${project.recent_turnover.involuntary_exits}, 重度使用者流失${project.recent_turnover.power_user_exits})
 敬业度维度：${engStr}
 
 ${riskStr}
@@ -82,7 +82,7 @@ export function buildDecisionContext(
 ): string {
   const projectSummaries = projects.map(p => {
     const risk = getTalentRiskSummary(p.id, talents)
-    return `${p.id} ${p.name} | 象限:${p.quadrant} | 人数:${p.headcount} | 投入:${formatWan(p.labor_cost + p.ai_cost)} | 利润:${formatWan(p.profit)} | 人效:${formatProductivity(p.productivity)} | AI强度:${formatRatio(p.ai_intensity)} | Power用户:${p.power_user_profile.count} | 高风险:${risk.high_risk_count} | 近期离职:${p.recent_turnover.total_exits}`
+    return `${p.id} ${p.name} | 象限:${p.quadrant} | 人数:${p.headcount} | 投入:${formatWan(p.labor_cost + p.ai_cost)} | 利润:${formatWan(p.profit)} | 人效:${formatProductivity(p.productivity)} | AI投入强度:${formatRatio(p.ai_intensity)} | 重度使用者:${p.power_user_profile.count} | 高风险:${risk.high_risk_count} | 近期离职:${p.recent_turnover.total_exits}`
   })
 
   const totalCost = projects.reduce((s, p) => s + p.labor_cost + p.ai_cost, 0)

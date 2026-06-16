@@ -13,6 +13,7 @@ import {
 } from '@/lib/analytics'
 import { formatProductivity, formatRatio, formatWan } from '@/lib/format'
 import { Card, SectionHeader, FactTag, JudgmentTag, ChapterTransition, Skeleton, CockpitTopbar, AiBriefing } from '@/components/ui'
+import { TermTooltip } from '@/components/TermTooltip'
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false })
 
@@ -39,6 +40,10 @@ export default function DivergencePage() {
   const pricing = useMemo(() => getPricingMismatch(talentRisk), [talentRisk])
   const fragility = useMemo(() => getDependencyFragility(talentRisk, projects), [talentRisk, projects])
   const projectName = useMemo(() => new Map(projects.map(project => [project.id, project.name])), [projects])
+  const topRoleCell = useMemo(() => {
+    const cells = roleMatrix || []
+    return [...cells].sort((a, b) => b.per_capita - a.per_capita)[0]
+  }, [roleMatrix])
 
   const leverageOption = useMemo(() => {
     if (!leverage) return {}
@@ -185,22 +190,22 @@ export default function DivergencePage() {
         <>
           <section className="grid grid-cols-12 gap-5">
             <Card className="col-span-5 p-5">
-              <SectionHeader title="杠杆矩阵" caption="X=AI投入强度，Y=人效，气泡=人数" right={<FactTag />} />
+              <SectionHeader title={<TermTooltip term="leverage_matrix">项目分布矩阵</TermTooltip>} caption="X=AI投入强度，Y=人效，气泡=人数" right={<FactTag />} />
               <ReactECharts option={leverageOption} style={{ height: 420 }} onEvents={{ click: (params: { data?: (number | string)[] }) => {
                 const id = params.data?.[4]
                 if (typeof id === 'string') router.push(`/attribution?id=${id}`)
               } }} />
-              <Insight text="高投入不等于有效，真正值得复制的是高人效且持续改善的项目。" />
+              <Insight text={`已变好 ${leverage.counts.amplifier_confirmed} 个，待改善 ${leverage.counts.underperforming + leverage.counts.low_base} 个；先看高投入低人效气泡。`} />
             </Card>
             <Card className="col-span-4 p-5">
-              <SectionHeader title="岗位×部门热力图" caption="颜色=同岗位人均 AI 成本" right={<FactTag />} />
+              <SectionHeader title="岗位×部门热力图" caption={<span>颜色=同岗位人均 AI 成本，重点看<TermTooltip term="role_gap">同岗位人效差距（倍）</TermTooltip></span>} right={<FactTag />} />
               <ReactECharts option={heatmapOption} style={{ height: 420 }} />
-              <Insight text="同岗位差距越大，越说明内部存在可迁移的方法样本。" />
+              <Insight text={topRoleCell ? `${projectName.get(topRoleCell.project_id) || topRoleCell.project_id} 的 ${topRoleCell.role} 人均 AI 成本最高，人数 ${topRoleCell.headcount}。` : '热力图暂无足够岗位数据。'} />
             </Card>
             <Card className="col-span-3 p-5">
               <SectionHeader title="模型用错地方了" caption="角色维度模型成本结构" right={<FactTag />} />
               <ReactECharts option={stackedOption} style={{ height: 420 }} />
-              <Insight text={`${mismatch.filter(item => item.flag === 'mismatch_suspect').length} 个项目存在非技术主导但高价模型占比偏高的疑似错配。`} />
+              <Insight text={`${mismatch.filter(item => item.flag === 'mismatch_suspect').length} 个项目疑似模型用错地方，高价模型更多集中在非技术主导项目。`} />
             </Card>
           </section>
 
@@ -208,12 +213,12 @@ export default function DivergencePage() {
             <Card className="p-5">
               <SectionHeader title="薪酬偏低 Bubble" caption="高薪低用 / 高用低薪两类人才定价错配" right={<FactTag />} />
               <ReactECharts option={pricingOption} style={{ height: 360 }} />
-              <Insight text={`薪酬位档为${pricing.crSource === 'proxy' ? '代理' : '真实'}口径，高用低薪是预算调整时最需要保护的人群。`} />
+              <Insight text={`高用低薪 ${pricing.highUseLowPaid.length} 人，高薪低用 ${pricing.highPaidLowUse.length} 人；先保护高用低薪人群。`} />
             </Card>
             <Card className="p-5">
               <SectionHeader title="个人依赖 × 薪酬位档扫描" caption="右下角=高依赖且薪酬偏低" right={<FactTag />} />
               <ReactECharts option={fragilityOption} style={{ height: 360 }} />
-              <Insight text={`${fragility.fragileCount} 名使用者落入高依赖低 CR 警戒区，需进入保人名单校验。`} />
+              <Insight text={`${fragility.fragileCount} 名使用者落入右下警戒区：部门依赖高且薪酬位档偏低。`} />
             </Card>
           </section>
 
@@ -221,7 +226,7 @@ export default function DivergencePage() {
             <div className="flex items-start gap-3">
               <JudgmentTag />
               <p className="text-[15px] leading-7 text-slate-800">
-                分化研判：先处理待改善项目的模型使用不匹配和低活跃问题，再把已让人效变好的方法迁移到同岗位差距最大的部门；涉及高依赖且薪酬偏低人才时必须进入护栏。
+                分化研判：先处理待改善项目的模型使用不匹配和低活跃问题，再把已让人效变好的方法迁移到同岗位差距最大的部门；涉及高依赖且薪酬偏低人才时必须进入关键人才保护检查。
               </p>
             </div>
           </Card>

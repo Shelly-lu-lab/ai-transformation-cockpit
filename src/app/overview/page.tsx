@@ -39,7 +39,7 @@ function buildOverviewInsights(projects: ProjectWithMetrics[]) {
   return [
     `**人效冠军：** ${byProductivity[0].name}，人效 ${formatProductivity(byProductivity[0].productivity)}，以 ${byProductivity[0].headcount} 人团队创造 ${formatWan(byProductivity[0].profit)} 利润。`,
     '',
-    `**待加码机会：** ${highPotential.length} 个项目人效高但 AI 渗透低——加码 AI 投入可能获得高回报。`,
+    `**待加码机会：** ${highPotential.length} 个项目人效高但 AI 使用普及度低——加码 AI 投入可能获得高回报。`,
     '',
     `**待改善预警：** ${underperforming.length} 个项目 AI 投入高但人效未达预期，累计 AI 投入 ${formatWan(underAiCost)}。`,
     '',
