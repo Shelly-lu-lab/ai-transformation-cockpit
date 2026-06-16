@@ -29,29 +29,73 @@ function DecisionInner() {
     () => (projects.length > 0 ? getCriticalTalentList(talentRisk, projects) : []),
     [projects, talentRisk]
   )
-  const criticalByProject = useMemo(() => {
-    const m = new Map<string, number>()
-    critical.forEach(c => m.set(c.project_name, (m.get(c.project_name) || 0) + 1))
-    return [...m.entries()].sort((a, b) => b[1] - a[1])
+  const groupedCritical = useMemo(() => {
+    const m = new Map<string, { name: string; count: number; minCr: number; avgCr: number; powerCount: number; projectId?: string }>()
+    critical.forEach(item => {
+      const key = item.project_name
+      const cr = Number.isFinite(item.cr) ? item.cr : 0.5
+      const prev = m.get(key)
+      if (!prev) {
+        m.set(key, { name: key, count: 1, minCr: cr, avgCr: cr, powerCount: 1, projectId: item.project_id })
+      } else {
+        prev.count += 1
+        prev.minCr = Math.min(prev.minCr, cr)
+        prev.avgCr = (prev.avgCr * (prev.count - 1) + cr) / prev.count
+        prev.powerCount += 1
+      }
+    })
+    return [...m.values()].sort((a, b) => b.count - a.count)
   }, [critical])
   const guardOption = useMemo(() => ({
     backgroundColor: 'transparent',
-    grid: { top: 24, right: 24, bottom: 48, left: 58 },
+    grid: { top: 16, right: 110, bottom: 24, left: 112 },
     tooltip: {
       backgroundColor: '#ffffff',
       borderColor: '#cbd5e1',
       textStyle: { color: '#1a2332' },
-      formatter: (params: { data: (number | string)[] }) => `<b>${params.data[3]}</b><br/>${params.data[4]}<br/>薪酬位档 ${Number(params.data[1]).toFixed(2)}<br/>活跃 ${params.data[2]} 天`,
+      formatter: (params: { dataIndex: number }) => {
+        const item = groupedCritical[params.dataIndex]
+        if (!item) return ''
+        return `<b>${item.name}</b><br/>保人数 ${item.count}<br/>平均薪酬位档 ${item.avgCr.toFixed(2)}<br/>最低薪酬位档 ${item.minCr.toFixed(2)}<br/>其中重度使用者 ${item.powerCount}`
+      },
     },
-    xAxis: { type: 'category', name: '项目', data: [...new Set(critical.map(item => item.project_name))], axisLabel: { color: '#475569', rotate: 30 }, splitLine: { show: false } },
-    yAxis: { name: '薪酬位档', min: 0.5, max: 1, axisLabel: { color: '#475569' }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
+    yAxis: {
+      type: 'category',
+      data: groupedCritical.map(item => item.name),
+      inverse: true,
+      axisLabel: { color: '#475569', fontSize: 12 },
+      axisLine: { show: false },
+      axisTick: { show: false },
+    },
+    xAxis: {
+      type: 'value',
+      name: '保人数',
+      axisLabel: { color: '#475569', fontSize: 11 },
+      splitLine: { lineStyle: { color: 'rgba(203,213,225,0.6)' } },
+    },
     series: [{
-      type: 'scatter',
-      data: critical.map(item => [item.project_name, item.cr, item.active_days, item.id, item.role || '核心岗位']),
-      symbolSize: (value: (number | string)[]) => Math.max(12, Math.min(40, Number(value[2]) * 1.2)),
-      itemStyle: { color: '#d97706', opacity: 0.82 },
+      type: 'bar',
+      barWidth: '60%',
+      data: groupedCritical.map(item => ({
+        value: item.count,
+        itemStyle: {
+          color: item.minCr < 0.65 ? '#dc2626' : item.minCr < 0.8 ? '#d97706' : '#eab308',
+          borderRadius: [0, 4, 4, 0],
+        },
+      })),
+      label: {
+        show: true,
+        position: 'right',
+        color: '#475569',
+        fontSize: 11,
+        formatter: (params: { dataIndex: number }) => {
+          const item = groupedCritical[params.dataIndex]
+          return item ? `${item.count} 人 · 最低位档 ${item.minCr.toFixed(2)}` : ''
+        },
+      },
     }],
-  }), [critical])
+  }), [groupedCritical])
+  const guardChartHeight = Math.max(280, groupedCritical.length * 40)
 
   const scenarios = useMemo(() => {
     const list: { label: string; intent: string }[] = []
@@ -107,18 +151,11 @@ function DecisionInner() {
         {isLoading ? (
           <Skeleton className="mt-3 h-64" />
         ) : critical.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-500">当前无满足三重风险条件的人员。</p>
+          <p className="mt-3 text-sm text-slate-500">当前数据未识别保人名单，方案推演不会触发关键人才保护检查。</p>
         ) : (
-          <div className="mt-4 grid grid-cols-[1fr_280px] gap-5">
-            <ReactECharts option={guardOption} style={{ height: 280 }} />
-            <div className="space-y-2">
-              {criticalByProject.map(([name, n]) => (
-                <div key={name} className="rounded-lg border border-amber-500/25 bg-amber-500/[0.07] px-3 py-2">
-                  <div className="flex justify-between gap-3 text-sm text-amber-800"><span>{name}</span><span>{n} 人</span></div>
-                </div>
-              ))}
-              <p className="pt-2 text-xs leading-5 text-slate-500"><JudgmentTag /> <span className="ml-1">任何预算动作触达这些人群时，方案必须优先保护额度与激励。</span></p>
-            </div>
+          <div className="mt-4">
+            <ReactECharts option={guardOption} style={{ height: guardChartHeight }} />
+            <p className="pt-2 text-xs leading-5 text-slate-500"><JudgmentTag /> <span className="ml-1">任何预算动作触达这些人群时，方案必须优先保护额度与激励。</span></p>
           </div>
         )}
       </Card>
@@ -219,19 +256,16 @@ function DecisionInner() {
                     <span className="rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-700">护栏</span>
                   )}
                 </div>
-                <p className="mt-3 text-sm font-medium leading-snug text-slate-900">{c.action}</p>
-                <dl className="mt-4 flex-1 space-y-2.5 border-t border-zinc-200/80 pt-3 text-xs leading-5">
-                  <div><dt className="text-slate-500"><TermTooltip term="coverage_scope">覆盖范围</TermTooltip></dt><dd className="text-slate-700">{c.scope}</dd></div>
-                  <div><dt className="text-slate-500"><TermTooltip term="expected_value">预期收益</TermTooltip></dt><dd className="whitespace-nowrap font-medium tabular-nums text-slate-800">{c.amount}</dd></div>
+                <p className="mt-3 whitespace-normal break-words text-sm font-medium leading-snug text-slate-900">{c.action}</p>
+                <dl className="mt-4 flex-1 space-y-3 border-t border-zinc-200/80 pt-3 text-xs leading-5">
+                  <div><dt className="text-slate-500"><TermTooltip term="coverage_scope">覆盖范围</TermTooltip></dt><dd className="whitespace-normal break-words text-pretty text-slate-700">{c.scope}</dd></div>
+                  <div><dt className="text-slate-500"><TermTooltip term="expected_value">预期收益</TermTooltip></dt><dd className="whitespace-normal break-words text-pretty font-medium tabular-nums text-slate-800">{c.amount}</dd></div>
                   <RoiMiniBar amount={c.amount} />
-                  <div className="rounded-lg bg-blue-50 px-2.5 py-2 text-[11px] leading-5 text-blue-800">
-                    AI 短判：参考 {c.benchmark || '标杆项目'}，预期收益为 {c.amount || '待测算'}。
-                  </div>
-                  <div><dt className="text-slate-500"><TermTooltip term="benchmark_project">参考标杆项目</TermTooltip></dt><dd className="text-emerald-400/90">{c.benchmark}</dd></div>
-                  <div><dt className="text-slate-500"><TermTooltip term="validation_method">怎么验证生效</TermTooltip></dt><dd className="text-slate-700">{c.validation}</dd></div>
-                  <div><dt className="text-slate-500">风险</dt><dd className="text-slate-600">{c.risk}</dd></div>
+                  <div><dt className="text-slate-500"><TermTooltip term="benchmark_project">参考标杆项目</TermTooltip></dt><dd className="whitespace-normal break-words text-pretty text-emerald-700">{c.benchmark}</dd></div>
+                  <div><dt className="text-slate-500"><TermTooltip term="validation_method">怎么验证生效</TermTooltip></dt><dd className="whitespace-normal break-words text-pretty text-slate-700">{c.validation}</dd></div>
+                  <div><dt className="text-slate-500">风险</dt><dd className="whitespace-normal break-words text-pretty text-slate-600">{c.risk}</dd></div>
                   {c.guardrail && (
-                    <div><dt className="text-amber-500/80">人才保护提示</dt><dd className="text-amber-700">{c.guardrail}</dd></div>
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2"><dt className="text-amber-600">人才保护提示</dt><dd className="whitespace-normal break-words text-pretty text-amber-700">{c.guardrail}</dd></div>
                   )}
                 </dl>
               </Card>
@@ -292,7 +326,7 @@ function RoiMiniBar({ amount }: { amount: string }) {
   return (
     <div>
       <dt className="text-slate-500">ROI 预期</dt>
-      <dd className="mt-1 h-2 overflow-hidden rounded-full bg-slate-100">
+      <dd className="mt-1 h-2 overflow-hidden rounded-full bg-slate-100 whitespace-normal break-words text-pretty">
         <span className="block h-full rounded-full bg-cyan-400" style={{ width: `${width}%` }} />
       </dd>
     </div>
