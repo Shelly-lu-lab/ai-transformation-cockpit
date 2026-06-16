@@ -17,8 +17,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="zh-CN" className="h-full bg-[#fafbfc] antialiased">
-      <body className="min-h-full text-[#1a2332]">
+    <html lang="zh-CN" className="h-full bg-[#fafbfc] antialiased" suppressHydrationWarning>
+      <body className="min-h-full text-[#1a2332]" suppressHydrationWarning>
         <DataProvider>
           <AiDockProvider>
           <div className="hidden min-h-screen items-center justify-center bg-[#fafbfc] p-8 text-center text-slate-700 max-xl:flex">

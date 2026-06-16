@@ -1,6 +1,6 @@
 'use client'
 
-import { FormEvent, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { MarkdownContent } from './MarkdownContent'
 import { useAiDock } from '@/lib/AiDockProvider'
@@ -37,11 +37,20 @@ export function AiDock() {
   const params = useSearchParams()
   const [collapsed, setCollapsed] = useState(false)
   const [input, setInput] = useState('')
+  const [mounted, setMounted] = useState(false)
   const { messages, isLoading, sendMessage, clearHistory } = useAiDock()
+
+  useEffect(() => { setMounted(true) }, [])
 
   const meta = useMemo(() => currentMeta(pathname), [pathname])
   const projectId = params.get('id') || params.get('from') || undefined
   const unread = collapsed && messages[messages.length - 1]?.role === 'ai'
+
+  if (!mounted) {
+    return (
+      <aside className="sticky top-20 hidden h-[calc(100vh-80px)] w-[360px] shrink-0 border-l border-zinc-200 bg-white py-6 pr-6 lg:block" />
+    )
+  }
 
   function submit(message: string) {
     const trimmed = message.trim()

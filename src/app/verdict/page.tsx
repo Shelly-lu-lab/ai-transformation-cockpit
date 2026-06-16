@@ -13,7 +13,7 @@ import {
 } from '@/components/ui'
 import { TermTooltip } from '@/components/TermTooltip'
 
-const CACHE_KEY = 'verdict-cache-v1'
+const CACHE_KEY = 'verdict-cache-v2'
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false })
 
 function gradeToScore(grade?: 'A' | 'B' | 'C') {
@@ -87,8 +87,8 @@ export default function VerdictPage() {
     projects.length > 0 ? Math.round((trendUpCount / projects.length) * 100) : 55,
   ]
   const dimensionColors = ['bg-blue-600', 'bg-cyan-600', 'bg-amber-600', 'bg-violet-600', 'bg-emerald-600']
-  const trendInsight = ai?.dimension_insights.find(item => item.key === 'trend')?.judgment
-  const moneyInsight = ai?.dimension_insights.find(item => item.key === 'money')?.judgment
+  const trendInsight = ai?.dimension_insights?.find(item => item.key === 'trend')?.judgment
+  const moneyInsight = ai?.dimension_insights?.find(item => item.key === 'money')?.judgment
   const radarOption = {
     backgroundColor: 'transparent',
     radar: {
@@ -237,7 +237,7 @@ export default function VerdictPage() {
             </div>
             <div>
               <p className="text-[15px] leading-relaxed text-slate-800">{ai.overall}</p>
-              {ai.dimension_insights.length > 0 ? (
+              {(ai.dimension_insights?.length ?? 0) > 0 ? (
                 <div className="mt-4 rounded-xl border border-zinc-200 bg-slate-50/80 p-3">
                   <div className="flex items-center justify-between">
                     <div className="text-sm font-semibold text-[#1a2332]">按维度解读</div>
@@ -251,7 +251,7 @@ export default function VerdictPage() {
                   </div>
                   {dimensionOpen ? (
                     <div className="mt-3 space-y-2">
-                      {ai.dimension_insights.slice(0, 5).map((item, index) => (
+                      {(ai.dimension_insights ?? []).slice(0, 5).map((item, index) => (
                         <div key={item.key} className="grid grid-cols-[92px_1fr] items-start gap-3 rounded-lg bg-white px-3 py-2 text-sm shadow-[var(--shadow-card)]">
                           <div className="flex items-center gap-2 font-medium text-slate-700">
                             <span className={`h-2 w-2 rounded-full ${dimensionColors[index] || 'bg-slate-400'}`} />

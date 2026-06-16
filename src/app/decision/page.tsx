@@ -252,9 +252,9 @@ function DecisionInner() {
                 />
                 <div>
                   <p className="whitespace-pre-line text-sm leading-relaxed text-slate-800">{ai.simulation}</p>
-                  {ai.simulation_dimensions.length > 0 ? (
+                  {(ai.simulation_dimensions?.length ?? 0) > 0 ? (
                     <div className="mt-3 space-y-2">
-                      {ai.simulation_dimensions.slice(0, 4).map(item => (
+                      {(ai.simulation_dimensions ?? []).slice(0, 4).map(item => (
                         <div key={item.key} className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm">
                           <span className="font-medium text-blue-900">{item.label}：</span>
                           <span className="text-blue-800">{item.judgment}</span>
