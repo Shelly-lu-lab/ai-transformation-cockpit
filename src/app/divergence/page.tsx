@@ -1,13 +1,12 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppData } from '@/lib/DataProvider'
 import {
   getDependencyFragility,
   getLeverageMatrix,
-  getModelMismatch,
   getPricingMismatch,
   LeveragePoint,
 } from '@/lib/analytics'
@@ -42,23 +41,85 @@ export default function DivergencePage() {
     () => (projects.length > 0 ? getLeverageMatrix(projects, monthlyTrend) : null),
     [projects, monthlyTrend]
   )
-  const mismatch = useMemo(() => getModelMismatch(projects), [projects])
   const pricing = useMemo(() => getPricingMismatch(talentRisk), [talentRisk])
   const fragility = useMemo(() => getDependencyFragility(talentRisk, projects), [talentRisk, projects])
   const projectName = useMemo(() => new Map(projects.map(project => [project.id, project.name])), [projects])
-  const topRoleCell = useMemo(() => {
-    const cells = roleMatrix || []
-    return [...cells].sort((a, b) => b.per_capita - a.per_capita)[0]
-  }, [roleMatrix])
+  const roleCells = useMemo(() => roleMatrix || [], [roleMatrix])
+  const roleNames = useMemo(() => Array.from(new Set(roleCells.map(cell => cell.role))), [roleCells])
+  const roleMix = useMemo(() => roleNames.map(role => {
+    const cells = roleCells.filter(cell => cell.role === role)
+    const totals = Object.fromEntries(models.map(model => [model, 0]))
+    let weight = 0
+    cells.forEach(cell => {
+      const cellWeight = Math.max(cell.ai_cost, 1)
+      weight += cellWeight
+      models.forEach(model => { totals[model] += (cell.model_mix?.[model] || 0) * cellWeight })
+    })
+    return Object.fromEntries(models.map(model => [model, weight > 0 ? totals[model] / weight : 0]))
+  }), [roleCells, roleNames])
+  const leverageInsight = useMemo(() => {
+    if (!leverage) return ''
+    const improved = leverage.counts.amplifier_confirmed
+    const highSpendLowReturn = leverage.counts.underperforming
+    const highPotential = leverage.counts.high_potential
+    return improved <= 1
+      ? `右下高投入低人效区有 ${highSpendLowReturn} 个气泡；高投入且已变好仅 ${improved} 个，多数投入还没转成人效。`
+      : `右上已变好项目 ${improved} 个，左上待加码 ${highPotential} 个；右下高投入低人效区是攻坚重点。`
+  }, [leverage])
+  const roleModelInsight = useMemo(() => {
+    const opusByRole = roleNames.map((role, index) => ({
+      role,
+      opus: Number(roleMix[index]?.['Claude Opus'] || 0),
+    }))
+    const sorted = [...opusByRole].sort((a, b) => b.opus - a.opus)
+    const top = sorted[0]
+    const bottom = sorted[sorted.length - 1]
+    return top && bottom
+      ? `${top.role} 的 Opus 占比 ${Math.round(top.opus * 100)}%，高于 ${bottom.role} 的 ${Math.round(bottom.opus * 100)}%；高价模型集中度很不均。`
+      : '模型结构暂无足够角色数据。'
+  }, [roleMix, roleNames])
+  const heatmapInsight = useMemo(() => {
+    if (roleCells.length === 0) return '热力图暂无足够岗位数据。'
+    const topCells = [...roleCells]
+      .sort((a, b) => b.per_capita - a.per_capita)
+      .slice(0, Math.max(3, Math.ceil(roleCells.length * 0.1)))
+    const counts = new Map<string, number>()
+    topCells.forEach(cell => counts.set(cell.role, (counts.get(cell.role) || 0) + 1))
+    const dominant = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]
+    const sameRole = dominant ? roleCells.filter(cell => cell.role === dominant[0] && cell.per_capita > 0) : []
+    const max = Math.max(...sameRole.map(cell => cell.per_capita), 0)
+    const min = Math.min(...sameRole.map(cell => cell.per_capita), max || 1)
+    const gap = min > 0 ? Math.max(1, max / min) : 1
+    return dominant
+      ? `${dominant[0]} 占高投入热区 ${dominant[1]} 格，同岗位部门间人均 AI 投入最高相差 ${gap.toFixed(1)} 倍。`
+      : '热力图暂无足够岗位数据。'
+  }, [roleCells])
+  const pricingInsight = useMemo(
+    () => `右下红区 ${pricing.highUseLowPaid.length} 人高用低薪；左上 ${pricing.highPaidLowUse.length} 人薪酬高但 AI 用得少。`,
+    [pricing]
+  )
+  const fragilityInsight = useMemo(
+    () => `右下警戒区 ${fragility.fragileCount} 人：部门依赖高且薪酬位档低；三角形重度使用者优先保护。`,
+    [fragility.fragileCount]
+  )
 
   const leverageOption = useMemo(() => {
     if (!leverage) return {}
     const groups = new Map<LeveragePoint['verdict'], LeveragePoint[]>()
     leverage.points.forEach(point => groups.set(point.verdict, [...(groups.get(point.verdict) || []), point]))
     const maxHC = Math.max(...leverage.points.map(point => point.headcount), 1)
+    const seriesItems = [...groups.entries()]
     return {
       backgroundColor: 'transparent',
-      grid: { top: 28, right: 28, bottom: 46, left: 52 },
+      grid: { top: 50, right: 28, bottom: 46, left: 52 },
+      legend: {
+        top: 0,
+        left: 'left',
+        textStyle: { color: '#475569', fontSize: 11 },
+        itemWidth: 14,
+        itemHeight: 8,
+        data: seriesItems.map(([verdict, points]) => `${verdictMeta[verdict].label} (${points.length})`),
+      },
       tooltip: {
         backgroundColor: '#ffffff',
         borderColor: '#cbd5e1',
@@ -70,8 +131,8 @@ export default function DivergencePage() {
       },
       xAxis: { type: 'log', name: 'AI投入强度', axisLabel: { color: '#475569', formatter: (v: number) => formatRatio(v) }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
       yAxis: { name: '人效', axisLabel: { color: '#475569' }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
-      series: [...groups.entries()].map(([verdict, points]) => ({
-        name: verdictMeta[verdict].label,
+      series: seriesItems.map(([verdict, points], index) => ({
+        name: `${verdictMeta[verdict].label} (${points.length})`,
         type: 'scatter',
         data: points.map(point => [point.ai_intensity, point.productivity, point.headcount, point.name, point.project_id, point.trend]),
         symbolSize: (value: number[]) => Math.max(12, Math.min(52, 12 + (value[2] / maxHC) * 42)),
@@ -85,12 +146,34 @@ export default function DivergencePage() {
           label: { show: false },
           data: [{ xAxis: leverage.medianIntensity }, { yAxis: leverage.medianProductivity }],
         } : undefined,
+        markArea: index === 0 ? {
+          silent: true,
+          label: { color: '#64748b', fontSize: 10, position: 'insideTopLeft' },
+          data: [
+            [
+              { name: '低投入·高人效', xAxis: 'min', yAxis: leverage.medianProductivity, itemStyle: { color: 'rgba(37,99,235,0.05)' } },
+              { xAxis: leverage.medianIntensity, yAxis: 'max' },
+            ],
+            [
+              { name: '高投入·高人效', xAxis: leverage.medianIntensity, yAxis: leverage.medianProductivity, itemStyle: { color: 'rgba(8,145,178,0.06)' } },
+              { xAxis: 'max', yAxis: 'max' },
+            ],
+            [
+              { name: '高投入·低人效', xAxis: leverage.medianIntensity, yAxis: 'min', itemStyle: { color: 'rgba(220,38,38,0.06)' } },
+              { xAxis: 'max', yAxis: leverage.medianProductivity },
+            ],
+            [
+              { name: '低投入·低人效', xAxis: 'min', yAxis: 'min', itemStyle: { color: 'rgba(100,116,139,0.05)' } },
+              { xAxis: leverage.medianIntensity, yAxis: leverage.medianProductivity },
+            ],
+          ],
+        } : undefined,
       })),
     }
   }, [leverage])
 
   const heatmapOption = useMemo(() => {
-    const cells = roleMatrix || []
+    const cells = roleCells
     const roles = Array.from(new Set(cells.map(cell => cell.role)))
     const departments = Array.from(new Set(cells.map(cell => projectName.get(cell.project_id) || cell.project_id)))
     const valuesAll = cells.map(cell => cell.per_capita).filter(v => Number.isFinite(v))
@@ -98,6 +181,16 @@ export default function DivergencePage() {
     const quantile = (p: number) => sorted.length === 0 ? 0 : sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))]
     const visualMin = quantile(0.05)
     const visualMax = Math.max(quantile(0.9), visualMin + 1)
+    const globalP90 = quantile(0.9)
+    const roleP90 = new Map(roles.map(role => {
+      const roleValues = cells
+        .filter(cell => cell.role === role)
+        .map(cell => cell.per_capita)
+        .sort((a, b) => a - b)
+      const p90 = roleValues.length === 0 ? 0 : roleValues[Math.min(roleValues.length - 1, Math.floor(roleValues.length * 0.9))]
+      return [role, p90]
+    }))
+    const highP90Roles = new Set([...roleP90.entries()].filter(([, p90]) => p90 >= globalP90).map(([role]) => role))
     return {
       backgroundColor: 'transparent',
       grid: { top: 28, right: 24, bottom: 90, left: 100 },
@@ -105,8 +198,8 @@ export default function DivergencePage() {
         backgroundColor: '#ffffff',
         borderColor: '#cbd5e1',
         textStyle: { color: '#1a2332' },
-        formatter: (params: { data: [number, number, number, number, number, string] }) => {
-          const [x, y, value, headcount, active, projectId] = params.data
+        formatter: (params: { value: [number, number, number, number, number, string] }) => {
+          const [x, y, value, headcount, active, projectId] = params.value
           return `<b>${departments[x]} · ${roles[y]}</b><br/>人均AI ${formatWan(value)}<br/>人数 ${headcount}<br/>活跃 ${active} 天<br/>${projectId}`
         },
       },
@@ -121,7 +214,20 @@ export default function DivergencePage() {
           formatter: (value: string) => value.length > 6 ? `${value.slice(0, 6)}...` : value,
         },
       },
-      yAxis: { type: 'category', data: roles, axisLabel: { color: '#475569', fontSize: 12, interval: 0 } },
+      yAxis: {
+        type: 'category',
+        data: roles,
+        axisLabel: {
+          color: '#475569',
+          fontSize: 12,
+          interval: 0,
+          formatter: (value: string) => highP90Roles.has(value) ? `{hot|${value} *}` : `{normal|${value}}`,
+          rich: {
+            hot: { color: '#b91c1c', fontSize: 12, fontWeight: 700 },
+            normal: { color: '#475569', fontSize: 12 },
+          },
+        },
+      },
       visualMap: {
         min: visualMin,
         max: visualMax,
@@ -144,26 +250,22 @@ export default function DivergencePage() {
         data: cells.flatMap(cell => {
           const x = departments.indexOf(projectName.get(cell.project_id) || cell.project_id)
           const y = roles.indexOf(cell.role)
-          return x >= 0 && y >= 0 ? [[x, y, cell.per_capita, cell.headcount, cell.avg_active_days, cell.project_id]] : []
+          const isExtreme = cell.per_capita >= visualMax * 0.95
+          return x >= 0 && y >= 0 ? [{
+            value: [x, y, cell.per_capita, cell.headcount, cell.avg_active_days, cell.project_id],
+            itemStyle: isExtreme ? {
+              borderColor: '#ffffff',
+              borderWidth: 2,
+              shadowBlur: 4,
+              shadowColor: 'rgba(185,28,28,0.4)',
+            } : undefined,
+          }] : []
         }),
       }],
     }
-  }, [roleMatrix, projectName])
+  }, [roleCells, projectName])
 
   const stackedOption = useMemo(() => {
-    const cells = roleMatrix || []
-    const roles = Array.from(new Set(cells.map(cell => cell.role)))
-    const roleMix = roles.map(role => {
-      const roleCells = cells.filter(cell => cell.role === role)
-      const totals = Object.fromEntries(models.map(model => [model, 0]))
-      let weight = 0
-      roleCells.forEach(cell => {
-        const cellWeight = Math.max(cell.ai_cost, 1)
-        weight += cellWeight
-        models.forEach(model => { totals[model] += (cell.model_mix?.[model] || 0) * cellWeight })
-      })
-      return Object.fromEntries(models.map(model => [model, weight > 0 ? totals[model] / weight : 0]))
-    })
     return {
       backgroundColor: 'transparent',
       grid: { top: 50, right: 12, bottom: 60, left: 50 },
@@ -171,7 +273,7 @@ export default function DivergencePage() {
       legend: { top: 0, left: 'center', type: 'scroll', textStyle: { color: '#475569', fontSize: 11 }, itemWidth: 14, itemHeight: 8, itemGap: 12 },
       xAxis: {
         type: 'category',
-        data: roles,
+        data: roleNames,
         axisLabel: {
           color: '#475569',
           rotate: 0,
@@ -187,9 +289,17 @@ export default function DivergencePage() {
         stack: 'model',
         data: roleMix.map(mix => Number(mix[model] || 0)),
         itemStyle: { color: modelColors[index] },
+        label: model === 'Claude Opus' ? {
+          show: true,
+          position: 'insideTop',
+          formatter: (params: { value: number }) => params.value >= 0.3 ? `${Math.round(params.value * 100)}%` : '',
+          color: '#ffffff',
+          fontSize: 11,
+          fontWeight: 600,
+        } : undefined,
       })),
     }
-  }, [roleMatrix])
+  }, [roleMix, roleNames])
 
   const pricingOption = useMemo(() => {
     const rows = [
@@ -198,6 +308,7 @@ export default function DivergencePage() {
     ]
     const xValues = rows.map(row => Number(row[0])).filter(value => Number.isFinite(value))
     const useLogXAxis = xValues.length > 0 && Math.min(...xValues) > 0
+    const xMin = useLogXAxis ? 0.01 : 0
     return {
       backgroundColor: 'transparent',
       grid: { top: 24, right: 24, bottom: 42, left: 50 },
@@ -215,6 +326,20 @@ export default function DivergencePage() {
           lineStyle: { color: '#94a3b8', type: 'dashed' },
           label: { color: '#64748b', fontSize: 10 },
           data: [{ yAxis: 1 }, { xAxis: 0.5 }, { xAxis: 1 }],
+        },
+        markArea: {
+          silent: true,
+          label: { color: '#64748b', fontSize: 11, position: 'insideTopLeft' },
+          data: [
+            [
+              { name: '高用低薪', xAxis: 1, yAxis: 0.5, itemStyle: { color: 'rgba(220,38,38,0.06)' } },
+              { xAxis: 'max', yAxis: 0.9 },
+            ],
+            [
+              { name: '高薪低用', xAxis: xMin, yAxis: 1.16, itemStyle: { color: 'rgba(217,119,6,0.06)' } },
+              { xAxis: 0.5, yAxis: 'max' },
+            ],
+          ],
         },
       }],
     }
@@ -241,6 +366,7 @@ export default function DivergencePage() {
           itemStyle: { color: '#0891b2', opacity: 0.5 },
           markArea: {
             silent: true,
+            label: { position: 'insideTopLeft', formatter: `警戒：${fragility.fragileCount} 人`, color: '#dc2626', fontSize: 11 },
             itemStyle: { color: 'rgba(220,38,38,0.14)', borderColor: '#dc2626', borderType: 'dashed', borderWidth: 1 },
             data: [[{ xAxis: 0.1, yAxis: 0.5 }, { xAxis: 1, yAxis: 0.9 }]],
           },
@@ -277,12 +403,12 @@ export default function DivergencePage() {
                 const id = params.data?.[4]
                 if (typeof id === 'string') router.push(`/attribution?id=${id}`)
               } }} />
-              <Insight text={`已变好 ${leverage.counts.amplifier_confirmed} 个，待改善 ${leverage.counts.underperforming + leverage.counts.low_base} 个；先看高投入低人效气泡。`} />
+              <Insight text={leverageInsight} />
             </Card>
             <Card className="col-span-5 p-5">
               <SectionHeader title="角色 × 模型成本结构" caption="X=角色，Y=各模型成本占比，颜色=模型类型" right={<FactTag />} />
               <ReactECharts option={stackedOption} style={{ height: 460 }} />
-              <Insight text={`${mismatch.filter(item => item.flag === 'mismatch_suspect').length} 个项目疑似模型用错地方，高价模型更多集中在非技术主导项目。`} />
+              <Insight text={roleModelInsight} />
             </Card>
           </section>
 
@@ -290,7 +416,7 @@ export default function DivergencePage() {
             <Card className="p-5">
               <SectionHeader title="岗位×部门 AI 投入热力图" caption={<span>颜色越深 = 同岗位人均 AI 投入越高，红色 = 异常高值；重点看<TermTooltip term="role_gap">同岗位人效差距（倍）</TermTooltip></span>} right={<FactTag />} />
               <ReactECharts option={heatmapOption} style={{ height: 480 }} />
-              <Insight text={topRoleCell ? `${projectName.get(topRoleCell.project_id) || topRoleCell.project_id} 的 ${topRoleCell.role} 人均 AI 成本最高，人数 ${topRoleCell.headcount}。` : '热力图暂无足够岗位数据。'} />
+              <Insight text={heatmapInsight} />
             </Card>
           </section>
 
@@ -298,23 +424,16 @@ export default function DivergencePage() {
             <Card className="p-5">
               <SectionHeader title="AI 投入 × 薪酬位档分布" caption="X=AI成本/薪酬，Y=薪酬位档，气泡颜色=高薪低用或高用低薪" right={<FactTag />} />
               <ReactECharts option={pricingOption} style={{ height: 380 }} />
-              <Insight text={`高用低薪 ${pricing.highUseLowPaid.length} 人，高薪低用 ${pricing.highPaidLowUse.length} 人；先保护高用低薪人群。`} />
+              <Insight text={pricingInsight} />
             </Card>
             <Card className="p-5">
               <SectionHeader title="员工部门依赖 × 薪酬位档分布" caption="X=个人占部门 AI 成本比例，Y=薪酬位档，形状=使用深度" right={<FactTag />} />
               <ReactECharts option={fragilityOption} style={{ height: 380 }} />
-              <Insight text={`${fragility.fragileCount} 名使用者落入右下警戒区：部门依赖高且薪酬位档偏低。`} />
+              <Insight text={fragilityInsight} />
             </Card>
           </section>
 
-          <Card className="p-5">
-            <div className="flex items-start gap-3">
-              <JudgmentTag />
-              <p className="text-[15px] leading-7 text-slate-800">
-                分化研判：先处理待改善项目的模型使用不匹配和低活跃问题，再把已让人效变好的方法迁移到同岗位差距最大的部门；涉及高依赖且薪酬偏低人才时必须进入关键人才保护检查。
-              </p>
-            </div>
-          </Card>
+          <DivergenceSynthesis />
         </>
       )}
 
@@ -332,5 +451,78 @@ function Insight({ text }: { text: string }) {
     <p className="mt-2 rounded-lg border border-cyan-400/15 bg-cyan-400/5 px-3 py-2 text-sm leading-6 text-slate-600">
       <JudgmentTag /> <span className="ml-2">{text.slice(0, 80)}</span>
     </p>
+  )
+}
+
+function DivergenceSynthesis() {
+  const storageKey = 'divergence-synthesis-v1'
+  const fallback = '分化研判：先看右下高投入低人效气泡，再看高价模型集中角色；涉及部门依赖高且薪酬位档低的人才，先做关键人才保护检查。'
+  const [answer, setAnswer] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+
+  const runAnalysis = async (force = false) => {
+    setIsLoading(true)
+    try {
+      if (!force) {
+        const cached = sessionStorage.getItem(storageKey)
+        if (cached) {
+          setAnswer(cached)
+          setIsLoading(false)
+          return
+        }
+      }
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'drilldown',
+          message: '基于分化地图的 5 张图，给出 2-3 句综合研判，覆盖：① 哪个象限最集中、② 哪个角色或模型最异常、③ 优先该做什么。',
+          page: '/divergence',
+          chapter: 'divergence',
+        }),
+      })
+      const json = await res.json()
+      const next = json.data?.answer || json.answer || fallback
+      setAnswer(next)
+      sessionStorage.setItem(storageKey, next)
+    } catch {
+      setAnswer(fallback)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    runAnalysis()
+  }, [])
+
+  return (
+    <Card className="p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <JudgmentTag />
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-slate-900">AI 综合研判</div>
+            {isLoading ? (
+              <div className="mt-3 space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-4/5" />
+              </div>
+            ) : (
+              <p className="mt-2 whitespace-pre-line text-[15px] leading-7 text-slate-800">
+                {answer || fallback}
+              </p>
+            )}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => runAnalysis(true)}
+          className="shrink-0 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:border-blue-400 hover:bg-blue-100"
+        >
+          重新分析
+        </button>
+      </div>
+    </Card>
   )
 }

@@ -7,9 +7,11 @@ import { enrichProjects } from '@/lib/calculations'
 import {
   buildVerdictInputs,
   buildAttributionEvidence,
+  getDependencyFragility,
   getCriticalTalentList,
   getLeverageMatrix,
   getModelMismatch,
+  getPricingMismatch,
   getRoleDeptDivergence,
 } from '@/lib/analytics'
 import { buildOverviewContext, buildSignalContext, buildDecisionContext } from '@/lib/buildContext'
@@ -101,6 +103,51 @@ function decisionContext(message: string): string {
 【用户意图】${message}`
 }
 
+function divergenceContext(): string {
+  const { projects, trend, talents, matrix } = getData()
+  const lm = getLeverageMatrix(projects, trend)
+  const highSpendLowReturn = lm.points
+    .filter(p => p.verdict === 'underperforming')
+    .sort((a, b) => b.ai_intensity - a.ai_intensity)
+    .slice(0, 3)
+  const highReturnLowSpend = lm.points
+    .filter(p => p.verdict === 'high_potential')
+    .sort((a, b) => b.productivity - a.productivity)
+    .slice(0, 3)
+
+  const cells = matrix || []
+  const roles = Array.from(new Set(cells.map(cell => cell.role)))
+  const roleMix = roles.map(role => {
+    const roleCells = cells.filter(cell => cell.role === role)
+    let weight = 0
+    let opus = 0
+    roleCells.forEach(cell => {
+      const cellWeight = Math.max(cell.ai_cost, 1)
+      weight += cellWeight
+      opus += (cell.model_mix?.['Claude Opus'] || 0) * cellWeight
+    })
+    return { role, opus: weight > 0 ? opus / weight : 0 }
+  }).sort((a, b) => b.opus - a.opus)
+
+  const topCells = [...cells]
+    .sort((a, b) => b.per_capita - a.per_capita)
+    .slice(0, Math.max(3, Math.ceil(cells.length * 0.1)))
+  const topRoleCount = new Map<string, number>()
+  topCells.forEach(cell => topRoleCount.set(cell.role, (topRoleCount.get(cell.role) || 0) + 1))
+  const dominantHeatRole = [...topRoleCount.entries()].sort((a, b) => b[1] - a[1])[0]
+  const maxCell = topCells[0]
+
+  const pricing = getPricingMismatch(talents)
+  const fragility = getDependencyFragility(talents, projects)
+
+  return `【分化地图 5 张图上下文】
+1. 项目分布矩阵：高投入低人效区 ${lm.counts.underperforming} 个；已让人效变好 ${lm.counts.amplifier_confirmed} 个；待加码 ${lm.counts.high_potential} 个。高投入低人效 Top：${highSpendLowReturn.map(p => `${p.name}(AI投入强度${(p.ai_intensity * 100).toFixed(1)}%，人效${p.productivity.toFixed(2)})`).join('、') || '无'}。低投入高人效 Top：${highReturnLowSpend.map(p => `${p.name}(人效${p.productivity.toFixed(2)})`).join('、') || '无'}。
+2. 角色×模型成本结构：Opus 占比最高 ${roleMix[0] ? `${roleMix[0].role} ${(roleMix[0].opus * 100).toFixed(0)}%` : '无'}；最低 ${roleMix[roleMix.length - 1] ? `${roleMix[roleMix.length - 1].role} ${(roleMix[roleMix.length - 1].opus * 100).toFixed(0)}%` : '无'}。
+3. 岗位×部门 AI 投入热力图：高投入热区最多的角色 ${dominantHeatRole ? `${dominantHeatRole[0]}(${dominantHeatRole[1]} 格)` : '无'}；最高单元格 ${maxCell ? `${projects.find(p => p.id === maxCell.project_id)?.name || maxCell.project_id} · ${maxCell.role}，人均 AI ${fmtWan(maxCell.per_capita)}` : '无'}。
+4. AI 投入×薪酬位档分布：右下高用低薪 ${pricing.highUseLowPaid.length} 人；左上高薪低用 ${pricing.highPaidLowUse.length} 人。
+5. 员工部门依赖×薪酬位档分布：右下警戒区 ${fragility.fragileCount} 人；其中三角形代表重度使用者。`
+}
+
 function drilldownContext(chapter: string | undefined, projectId: string | undefined): string {
   const { projects, trend, talents, matrix } = getData()
   if (projectId) {
@@ -111,6 +158,7 @@ function drilldownContext(chapter: string | undefined, projectId: string | undef
     }
   }
   if (chapter === 'decision') return buildDecisionContext(projects, talents)
+  if (chapter === 'divergence') return divergenceContext()
   return buildOverviewContext(projects)
 }
 
