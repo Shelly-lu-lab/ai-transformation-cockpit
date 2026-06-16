@@ -26,6 +26,9 @@ const verdictMeta: Record<LeveragePoint['verdict'], { label: string; color: stri
 
 const models = ['Claude Opus', 'Claude Sonnet', 'GPT', 'Cursor/IDE', 'Mivo', '其他']
 const modelColors = ['#dc2626', '#0891b2', '#2563eb', '#7c3aed', '#d97706', '#64748b']
+// 主流业务角色名单——分析洞察以这些为主，"其他/未分类"等聚合类别仅做补充观察
+const FALLBACK_ROLE_LABELS = ['其他', '未分类', '杂项', 'Other', 'other', 'Misc', 'misc']
+const isFallbackRole = (role: string) => FALLBACK_ROLE_LABELS.includes(role)
 
 function jitter(seed: string, range = 0.02) {
   let hash = 0
@@ -67,31 +70,34 @@ export default function DivergencePage() {
       : `右上已变好项目 ${improved} 个，左上待加码 ${highPotential} 个；右下高投入低人效区是攻坚重点。`
   }, [leverage])
   const roleModelInsight = useMemo(() => {
-    const opusByRole = roleNames.map((role, index) => ({
-      role,
-      opus: Number(roleMix[index]?.['Claude Opus'] || 0),
-    }))
+    const opusByRole = roleNames
+      .map((role, index) => ({
+        role,
+        opus: Number(roleMix[index]?.['Claude Opus'] || 0),
+      }))
+      .filter(item => !isFallbackRole(item.role))
     const sorted = [...opusByRole].sort((a, b) => b.opus - a.opus)
     const top = sorted[0]
     const bottom = sorted[sorted.length - 1]
     return top && bottom
-      ? `${top.role} 的 Opus 占比 ${Math.round(top.opus * 100)}%，高于 ${bottom.role} 的 ${Math.round(bottom.opus * 100)}%；高价模型集中度很不均。`
+      ? `${top.role} 的 Opus 占比 ${Math.round(top.opus * 100)}%，远高于 ${bottom.role} 的 ${Math.round(bottom.opus * 100)}%；高价模型在主流角色间分布不均。`
       : '模型结构暂无足够角色数据。'
   }, [roleMix, roleNames])
   const heatmapInsight = useMemo(() => {
-    if (roleCells.length === 0) return '热力图暂无足够岗位数据。'
-    const topCells = [...roleCells]
+    const mainstreamCells = roleCells.filter(cell => !isFallbackRole(cell.role))
+    if (mainstreamCells.length === 0) return '热力图暂无足够岗位数据。'
+    const topCells = [...mainstreamCells]
       .sort((a, b) => b.per_capita - a.per_capita)
-      .slice(0, Math.max(3, Math.ceil(roleCells.length * 0.1)))
+      .slice(0, Math.max(3, Math.ceil(mainstreamCells.length * 0.1)))
     const counts = new Map<string, number>()
     topCells.forEach(cell => counts.set(cell.role, (counts.get(cell.role) || 0) + 1))
     const dominant = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]
-    const sameRole = dominant ? roleCells.filter(cell => cell.role === dominant[0] && cell.per_capita > 0) : []
+    const sameRole = dominant ? mainstreamCells.filter(cell => cell.role === dominant[0] && cell.per_capita > 0) : []
     const max = Math.max(...sameRole.map(cell => cell.per_capita), 0)
-    const min = Math.min(...sameRole.map(cell => cell.per_capita), max || 1)
-    const gap = min > 0 ? Math.max(1, max / min) : 1
+    const min = Math.min(...sameRole.filter(cell => cell.per_capita > 0).map(cell => cell.per_capita), max || 1)
+    const gap = min > 0 && max > 0 ? Math.max(1, max / min) : 1
     return dominant
-      ? `${dominant[0]} 占高投入热区 ${dominant[1]} 格，同岗位部门间人均 AI 投入最高相差 ${gap.toFixed(1)} 倍。`
+      ? `主流角色中 ${dominant[0]} 占高投入热区 ${dominant[1]} 格，同岗位部门间人均 AI 投入最高相差 ${gap.toFixed(1)} 倍。`
       : '热力图暂无足够岗位数据。'
   }, [roleCells])
   const pricingInsight = useMemo(
