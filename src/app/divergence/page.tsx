@@ -93,7 +93,11 @@ export default function DivergencePage() {
     const cells = roleMatrix || []
     const roles = Array.from(new Set(cells.map(cell => cell.role)))
     const departments = Array.from(new Set(cells.map(cell => projectName.get(cell.project_id) || cell.project_id)))
-    const max = Math.max(...cells.map(cell => cell.per_capita), 1)
+    const valuesAll = cells.map(cell => cell.per_capita).filter(v => Number.isFinite(v))
+    const sorted = [...valuesAll].sort((a, b) => a - b)
+    const quantile = (p: number) => sorted.length === 0 ? 0 : sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))]
+    const visualMin = quantile(0.05)
+    const visualMax = Math.max(quantile(0.9), visualMin + 1)
     return {
       backgroundColor: 'transparent',
       grid: { top: 28, right: 24, bottom: 90, left: 100 },
@@ -119,21 +123,24 @@ export default function DivergencePage() {
       },
       yAxis: { type: 'category', data: roles, axisLabel: { color: '#475569', fontSize: 12, interval: 0 } },
       visualMap: {
-        min: 0,
-        max,
+        min: visualMin,
+        max: visualMax,
+        dimension: 2,
         show: true,
         orient: 'horizontal',
         bottom: 4,
         left: 'center',
-        itemWidth: 16,
-        itemHeight: 8,
+        itemWidth: 240,
+        itemHeight: 10,
+        text: ['高', '低'],
         textStyle: { color: '#475569', fontSize: 10 },
         calculable: false,
-        inRange: { color: ['#f1f5f9', '#bae6fd', '#67e8f9', '#0e7490', '#b91c1c'] },
+        inRange: { color: ['#e0f2fe', '#7dd3fc', '#0891b2', '#155e75', '#b91c1c'] },
       },
       series: [{
         type: 'heatmap',
-        itemStyle: { borderColor: '#ffffff', borderWidth: 1 },
+        itemStyle: { borderColor: 'rgba(148,163,184,0.35)', borderWidth: 1 },
+        emphasis: { itemStyle: { borderColor: '#1a2332', borderWidth: 2 } },
         data: cells.flatMap(cell => {
           const x = departments.indexOf(projectName.get(cell.project_id) || cell.project_id)
           const y = roles.indexOf(cell.role)
