@@ -40,8 +40,8 @@ export function MetricValue({ value, units, tone = 'default' }: {
 }) {
   const toneCls = tone === 'good' ? 'text-emerald-700' : tone === 'bad' ? 'text-red-700' : tone === 'warn' ? 'text-amber-700' : 'text-[#1a2332]'
   const len = value.replace(/[,.]/g, '').length
-  const sizeCls = len >= 9 ? 'text-[20px]' : len >= 7 ? 'text-[22px]' : len >= 6 ? 'text-[25px]' : 'text-[40px]'
-  const unitSizeCls = len >= 6 ? 'text-[14px]' : 'text-[20px]'
+  const sizeCls = len >= 10 ? 'text-[22px]' : len >= 8 ? 'text-[28px]' : len >= 6 ? 'text-[34px]' : 'text-[40px]'
+  const unitSizeCls = len >= 8 ? 'text-[14px]' : len >= 6 ? 'text-[18px]' : 'text-[20px]'
   return (
     <span className={`inline-flex max-w-full items-baseline gap-1 whitespace-nowrap font-bold leading-none tabular-nums ${toneCls}`}>
       <span className={sizeCls}>{value}</span>

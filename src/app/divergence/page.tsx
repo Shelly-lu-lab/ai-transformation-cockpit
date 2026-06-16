@@ -13,6 +13,7 @@ import {
 import { formatProductivity, formatRatio, formatWan } from '@/lib/format'
 import { Card, SectionHeader, FactTag, JudgmentTag, ChapterTransition, Skeleton, CockpitTopbar, AiBriefing } from '@/components/ui'
 import { TermTooltip } from '@/components/TermTooltip'
+import { MarkdownContent } from '@/components/MarkdownContent'
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false })
 
@@ -117,9 +118,16 @@ export default function DivergencePage() {
     const maxHC = Math.max(...leverage.points.map(point => point.headcount), 1)
     const seriesItems = [...groups.entries()]
     const areaVerdict = seriesItems.find(([verdict]) => verdict !== 'support')?.[0]
+    const productivityValues = leverage.points.filter(p => Number.isFinite(p.productivity) && p.productivity !== 0).map(p => p.productivity)
+    const yMin = productivityValues.length > 0 ? Math.min(...productivityValues) : 0
+    const yMax = productivityValues.length > 0 ? Math.max(...productivityValues) : 1
+    const yPad = Math.max((yMax - yMin) * 0.18, 0.5)
+    const intensityValues = leverage.points.filter(p => Number.isFinite(p.ai_intensity) && p.ai_intensity > 0).map(p => p.ai_intensity)
+    const xMin = intensityValues.length > 0 ? Math.max(Math.min(...intensityValues) * 0.5, 0.001) : 0.01
+    const xMax = intensityValues.length > 0 ? Math.max(...intensityValues) * 1.5 : 10
     return {
       backgroundColor: 'transparent',
-      grid: { top: 50, right: 28, bottom: 46, left: 52 },
+      grid: { top: 56, right: 40, bottom: 56, left: 64 },
       legend: {
         top: 0,
         left: 'left',
@@ -137,8 +145,8 @@ export default function DivergencePage() {
           return `<b>${data[3]}</b><br/>人效 ${formatProductivity(Number(data[1]))}<br/>AI投入强度 ${formatRatio(Number(data[0]))}<br/>人数 ${data[2]}`
         },
       },
-      xAxis: { type: 'log', name: 'AI投入强度', axisLabel: { color: '#475569', formatter: (v: number) => formatRatio(v) }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
-      yAxis: { name: '人效', axisLabel: { color: '#475569' }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
+      xAxis: { type: 'log', min: xMin, max: xMax, name: 'AI 投入强度', nameGap: 28, axisLabel: { color: '#475569', formatter: (v: number) => formatRatio(v) }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
+      yAxis: { name: '人效', min: yMin - yPad, max: yMax + yPad, nameGap: 36, axisLabel: { color: '#475569' }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
       series: seriesItems.map(([verdict, points]) => ({
         name: `${verdictMeta[verdict].label} (${points.length})`,
         type: 'scatter',
@@ -399,7 +407,7 @@ export default function DivergencePage() {
         <h1 className="text-[30px] font-semibold leading-tight text-[#1a2332]">钱花在哪成了，哪没成？</h1>
         <p className="mt-1.5 text-sm text-slate-500">以五张交叉图定位 AI 投入、人效、岗位、模型与人才定价之间的分化。</p>
       </header>
-      <AiBriefing title="分化洞察" prompt="基于分化地图，指出最重要的业务单元分化信号" />
+      <AiBriefing title="分化洞察" prompt="用一句话整体概括 27 个业务单元在 AI 投入与人效上的分化格局——聚焦在几类项目分布的整体规律上（哪类多、哪类少、整体走向如何），不要只挑某 1-2 个项目说" />
 
       {isLoading || !leverage ? (
         <Skeleton className="h-[620px]" />
@@ -518,9 +526,9 @@ function DivergenceSynthesis() {
                 <Skeleton className="h-4 w-4/5" />
               </div>
             ) : (
-              <p className="mt-2 whitespace-pre-line text-[15px] leading-7 text-slate-800">
-                {answer || fallback}
-              </p>
+              <div className="mt-2 text-[15px] leading-7 text-slate-800">
+                <MarkdownContent content={answer || fallback} />
+              </div>
             )}
           </div>
         </div>

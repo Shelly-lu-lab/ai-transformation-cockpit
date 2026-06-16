@@ -238,14 +238,14 @@ export async function POST(request: NextRequest) {
     if (mode === 'verdict') {
       system = VERDICT_PROMPT
       user = `全公司项目分类汇总结果如下，请生成健康度总评：\n\n${verdictContext()}`
-      maxTokens = 1800
+      maxTokens = 2800
     } else if (mode === 'attribution') {
       if (!projectId) return NextResponse.json({ error: 'missing_project_id' }, { status: 400 })
       const ctx = attributionContext(projectId)
       if (!ctx) return NextResponse.json({ error: 'project_not_found' }, { status: 404 })
       system = ATTRIBUTION_PROMPT
       user = `请对以下项目做五步根因研判：\n\n${ctx}`
-      maxTokens = 1600
+      maxTokens = 2400
     } else if (mode === 'decision') {
       system = DECISION_PROMPT
       user = decisionContext(message)
