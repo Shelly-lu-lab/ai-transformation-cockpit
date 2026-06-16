@@ -420,6 +420,7 @@ export interface OrgChartData {
 export interface AttributionEvidence {
   project: ProjectWithMetrics
   benchmark: ProjectWithMetrics | null   // 同象限外的标杆（amplifier 中人效最高且主导序列接近）
+  benchmarkQuality?: 'strong' | 'medium' | 'weak' | 'fallback'
   steps: EvidenceStep[]
 }
 
@@ -440,6 +441,45 @@ const ACTIVE_BUCKETS = [
   { range: '20+天', min: 20, max: Infinity },
 ]
 const ORG_MAIN_ROLES = ['管理', '技术研发', '产品', '设计', '运营', '美术']
+const ROLE_FALLBACK_LABELS = new Set(['其他', '未分类', '杂项', 'Other'])
+
+function selectAttributionBenchmark(
+  projects: ProjectWithMetrics[],
+  current: ProjectWithMetrics,
+  trend: MonthlyRecord[],
+  roleMatrix: RoleDeptCell[] | null
+): { benchmark: ProjectWithMetrics | null; quality?: AttributionEvidence['benchmarkQuality'] } {
+  const roleDiversity = (projectId: string) => {
+    const cells = roleMatrix?.filter(cell =>
+      cell.project_id === projectId && !ROLE_FALLBACK_LABELS.has(cell.role)
+    ) || []
+    return new Set(cells.map(cell => cell.role)).size
+  }
+  const candidates = projects.filter(project =>
+    project.id !== current.id
+    && project.quadrant === 'amplifier'
+    && getProductivityTrend(project.id, trend).direction === 'up'
+  )
+  if (candidates.length === 0) return { benchmark: null }
+
+  const sortByPriority = (list: ProjectWithMetrics[]) => [...list].sort((a, b) => {
+    const aSameType = a.type === current.type ? 1 : 0
+    const bSameType = b.type === current.type ? 1 : 0
+    if (aSameType !== bSameType) return bSameType - aSameType
+    return b.productivity - a.productivity
+  })
+
+  const strong = candidates.filter(project => project.headcount >= 15 && roleDiversity(project.id) >= 4)
+  if (strong.length > 0) return { benchmark: sortByPriority(strong)[0], quality: 'strong' }
+
+  const medium = candidates.filter(project => project.headcount >= 10 && roleDiversity(project.id) >= 3)
+  if (medium.length > 0) return { benchmark: sortByPriority(medium)[0], quality: 'medium' }
+
+  const weak = candidates.filter(project => project.headcount >= 5 && roleDiversity(project.id) >= 2)
+  if (weak.length > 0) return { benchmark: sortByPriority(weak)[0], quality: 'weak' }
+
+  return { benchmark: sortByPriority(candidates)[0], quality: 'fallback' }
+}
 
 function buildModelChart(project: ProjectWithMetrics, benchmark: ProjectWithMetrics | null): ModelChartData {
   const current = ATTRIBUTION_MODELS.map(model => ({ model, share: project.ai_model_mix?.[model] || 0 }))
@@ -549,10 +589,8 @@ export function buildAttributionEvidence(
   const project = projects.find(p => p.id === projectId)
   if (!project) return null
 
-  // 标杆：amplifier 象限中人效最高者（排除自己）
-  const benchmark = projects
-    .filter(p => p.id !== projectId && p.quadrant === 'amplifier')
-    .sort((a, b) => b.productivity - a.productivity)[0] || null
+  // 标杆：优先已验证有效、同类型、人数与角色结构更典型的项目。
+  const { benchmark, quality: benchmarkQuality } = selectAttributionBenchmark(projects, project, trend, roleMatrix)
 
   const pTalents = talents.filter(t => t.project_id === projectId)
   const benchmarkTalents = benchmark ? talents.filter(t => t.project_id === benchmark.id) : []
@@ -681,7 +719,7 @@ export function buildAttributionEvidence(
     },
   ]
 
-  return { project, benchmark, steps }
+  return { project, benchmark, benchmarkQuality, steps }
 }
 
 // ───────────────────────── ①章 判断页输入（核心指标 + 健康度原料） ─────────────────────────

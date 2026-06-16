@@ -261,7 +261,7 @@ function AttributionInner() {
     setAi(null)
     setRevealed(0)
 
-    const cacheKey = `attribution-${selectedId}`
+    const cacheKey = `attribution-v2-${selectedId}`
     try {
       const cached = sessionStorage.getItem(cacheKey)
       if (cached) {
@@ -358,7 +358,12 @@ function AttributionInner() {
             {evidence?.benchmark && (
               <div>
                 <div className="text-[10px] uppercase tracking-wider text-slate-500">对照标杆</div>
-                <div className="text-sm font-medium text-emerald-400">{evidence.benchmark.name}（人效 {formatProductivity(evidence.benchmark.productivity)}）</div>
+                <div className="text-sm font-medium text-emerald-700">
+                  {evidence.benchmark.name}（人效 {formatProductivity(evidence.benchmark.productivity)}）
+                  {evidence.benchmarkQuality === 'weak' || evidence.benchmarkQuality === 'fallback'
+                    ? <span className="ml-2 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">标杆样本有限</span>
+                    : null}
+                </div>
               </div>
             )}
           </div>
