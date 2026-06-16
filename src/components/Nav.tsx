@@ -23,23 +23,23 @@ export function Nav() {
   const active = legacyMap[pathname] || pathname
 
   return (
-    <nav className="sticky top-0 z-50 h-14 border-b border-zinc-800/80 bg-zinc-950/85 backdrop-blur">
+    <nav className="sticky top-0 z-50 h-[72px] bg-white/90 shadow-[0_1px_0_rgba(15,23,42,0.06)] backdrop-blur">
       <div className="mx-auto flex h-full max-w-[1440px] items-center justify-between px-6">
         <Link href="/" className="flex items-center gap-3">
-          <span className="grid h-7 w-7 place-items-center rounded-md border border-blue-500/40 bg-blue-500/10 text-xs font-bold text-blue-300">
+          <span className="grid h-9 w-9 place-items-center rounded-lg border border-blue-200 bg-blue-50 text-sm font-bold text-blue-700">
             AI
           </span>
           <div>
-            <div className="text-sm font-semibold tracking-wide text-zinc-50">AI 转型驾驶舱</div>
-            <div className="text-[10px] tracking-wide text-zinc-600">AI Transformation Cockpit</div>
+            <div className="text-lg font-semibold tracking-wide text-[#1a2332]">AI 转型驾驶舱</div>
+            <div className="text-[11px] leading-4 tracking-wide text-slate-500">AI Transformation Cockpit</div>
           </div>
         </Link>
 
         <div className="flex items-center gap-3">
           {dataSource === 'uploaded' ? (
-            <div className="flex max-w-[280px] items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-200">
+            <div className="flex max-w-[280px] items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs text-emerald-700">
               <span className="truncate">上传数据：{sourceName}</span>
-              <button type="button" onClick={resetUploadedData} className="shrink-0 text-emerald-300 hover:text-white">
+              <button type="button" onClick={resetUploadedData} className="shrink-0 text-emerald-700 hover:text-emerald-900">
                 恢复样例
               </button>
             </div>
@@ -49,16 +49,17 @@ export function Nav() {
               const isActive = active === c.href
               return (
                 <div key={c.href} className="flex items-center">
-                  {i > 0 && <span className="mx-1 h-px w-3 bg-zinc-800" />}
+                  {i > 0 && <span className="mx-1 h-px w-3 bg-zinc-200" />}
                   <Link
                     href={c.href}
                     className={[
-                      'flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors',
-                      isActive ? 'bg-blue-500/15 text-blue-300' : 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200',
+                      'relative flex items-center gap-2 rounded-lg px-4 py-2.5 text-[15px] transition-colors',
+                      isActive ? 'text-blue-700' : 'text-slate-500 hover:bg-slate-50 hover:text-[#1a2332]',
                     ].join(' ')}
                   >
-                    <span className={`text-[10px] font-bold tabular-nums ${isActive ? 'text-blue-400' : 'text-zinc-700'}`}>{c.num}</span>
+                    <span className={`text-[11px] font-bold tabular-nums ${isActive ? 'text-blue-600' : 'text-slate-400'}`}>{c.num}</span>
                     {c.label}
+                    {isActive ? <span className="absolute inset-x-4 -bottom-[15px] h-0.5 rounded-full bg-blue-600" /> : null}
                   </Link>
                 </div>
               )

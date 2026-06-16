@@ -13,8 +13,9 @@ export interface VerdictFinding {
   severity: Severity
   title: string          // 一句尖锐结论
   evidence: string[]     // 2-3 个证据数字句
-  target_chapter: 'divergence' | 'attribution' | 'decision'
-  target_project_id?: string
+  target_chapter: 'divergence' | 'attribution' | 'decision' // 严格三选一：跨项目分化/单项目诊断/生成方案
+  target_project_id?: string // 单项目诊断和方案承接时提供
+  target_cause?: string      // target_chapter=decision 时提供，用于方案页承接根因
 }
 export interface VerdictResponse {
   grades: { money: Grade; efficiency: Grade; people: Grade }
@@ -78,6 +79,7 @@ export function normalizeVerdict(raw: unknown): VerdictResponse {
       target_chapter: (['divergence', 'attribution', 'decision'].includes(f.target_chapter as string)
         ? f.target_chapter : 'divergence') as VerdictFinding['target_chapter'],
       target_project_id: typeof f.target_project_id === 'string' ? f.target_project_id : undefined,
+      target_cause: typeof f.target_cause === 'string' ? f.target_cause : undefined,
     })),
   }
 }

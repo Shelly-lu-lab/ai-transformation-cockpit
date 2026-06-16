@@ -17,15 +17,15 @@ import { Card, SectionHeader, FactTag, JudgmentTag, ChapterTransition, Skeleton,
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false })
 
 const verdictMeta: Record<LeveragePoint['verdict'], { label: string; color: string }> = {
-  amplifier_confirmed: { label: '放大器·已验证', color: '#22d3ee' },
-  amplifier_unproven: { label: '放大器·待验证', color: '#67e8f9' },
-  underperforming: { label: '待优化区', color: '#ef4444' },
-  high_potential: { label: '高潜力区', color: '#3b82f6' },
-  low_base: { label: '基础区', color: '#71717a' },
+  amplifier_confirmed: { label: 'AI 已让人效变好', color: '#0891b2' },
+  amplifier_unproven: { label: '效果待验证', color: '#06b6d4' },
+  underperforming: { label: '待改善', color: '#dc2626' },
+  high_potential: { label: '待加码', color: '#2563eb' },
+  low_base: { label: '基础区', color: '#64748b' },
 }
 
 const models = ['Claude Opus', 'Claude Sonnet', 'GPT', 'Cursor/IDE', 'Mivo', '其他']
-const modelColors = ['#ef4444', '#22d3ee', '#3b82f6', '#8b5cf6', '#f59e0b', '#71717a']
+const modelColors = ['#dc2626', '#0891b2', '#2563eb', '#7c3aed', '#d97706', '#64748b']
 
 export default function DivergencePage() {
   const router = useRouter()
@@ -49,16 +49,16 @@ export default function DivergencePage() {
       backgroundColor: 'transparent',
       grid: { top: 28, right: 28, bottom: 46, left: 52 },
       tooltip: {
-        backgroundColor: '#0f172a',
-        borderColor: '#334155',
-        textStyle: { color: '#fafafa' },
+        backgroundColor: '#ffffff',
+        borderColor: '#cbd5e1',
+        textStyle: { color: '#1a2332' },
         formatter: (params: { data: (number | string)[] }) => {
           const data = params.data
-          return `<b>${data[3]}</b><br/>人效 ${formatProductivity(Number(data[1]))}<br/>AI强度 ${formatRatio(Number(data[0]))}<br/>人数 ${data[2]}`
+          return `<b>${data[3]}</b><br/>人效 ${formatProductivity(Number(data[1]))}<br/>AI投入强度 ${formatRatio(Number(data[0]))}<br/>人数 ${data[2]}`
         },
       },
-      xAxis: { type: 'log', name: 'AI强度', axisLabel: { color: '#94a3b8', formatter: (v: number) => formatRatio(v) }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.14)' } } },
-      yAxis: { name: '人效', axisLabel: { color: '#94a3b8' }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.14)' } } },
+      xAxis: { type: 'log', name: 'AI投入强度', axisLabel: { color: '#475569', formatter: (v: number) => formatRatio(v) }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
+      yAxis: { name: '人效', axisLabel: { color: '#475569' }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
       series: [...groups.entries()].map(([verdict, points]) => ({
         name: verdictMeta[verdict].label,
         type: 'scatter',
@@ -66,7 +66,7 @@ export default function DivergencePage() {
         symbolSize: (value: number[]) => Math.max(12, Math.min(52, 12 + (value[2] / maxHC) * 42)),
         itemStyle: { color: verdictMeta[verdict].color, opacity: 0.9 },
         label: { show: false },
-        emphasis: { label: { show: true, formatter: '{@[3]}', color: '#fafafa' } },
+        emphasis: { label: { show: true, formatter: '{@[3]}', color: '#1a2332' } },
         markLine: verdict === 'underperforming' ? {
           silent: true,
           symbol: 'none',
@@ -87,17 +87,17 @@ export default function DivergencePage() {
       backgroundColor: 'transparent',
       grid: { top: 28, right: 10, bottom: 70, left: 70 },
       tooltip: {
-        backgroundColor: '#0f172a',
-        borderColor: '#334155',
-        textStyle: { color: '#fafafa' },
+        backgroundColor: '#ffffff',
+        borderColor: '#cbd5e1',
+        textStyle: { color: '#1a2332' },
         formatter: (params: { data: [number, number, number, number, number, string] }) => {
           const [x, y, value, headcount, active, projectId] = params.data
           return `<b>${departments[x]} · ${roles[y]}</b><br/>人均AI ${formatWan(value)}<br/>人数 ${headcount}<br/>活跃 ${active} 天<br/>${projectId}`
         },
       },
-      xAxis: { type: 'category', data: departments, axisLabel: { color: '#94a3b8', rotate: 55, fontSize: 10 } },
-      yAxis: { type: 'category', data: roles, axisLabel: { color: '#94a3b8', fontSize: 11 } },
-      visualMap: { min: 0, max, show: false, inRange: { color: ['#0f172a', '#164e63', '#22d3ee', '#f59e0b'] } },
+      xAxis: { type: 'category', data: departments, axisLabel: { color: '#475569', rotate: 55, fontSize: 10 } },
+      yAxis: { type: 'category', data: roles, axisLabel: { color: '#475569', fontSize: 11 } },
+      visualMap: { min: 0, max, show: false, inRange: { color: ['#ffffff', '#164e63', '#0891b2', '#d97706'] } },
       series: [{
         type: 'heatmap',
         data: cells.flatMap(cell => {
@@ -126,10 +126,10 @@ export default function DivergencePage() {
     return {
       backgroundColor: 'transparent',
       grid: { top: 26, right: 12, bottom: 45, left: 50 },
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: '#0f172a', borderColor: '#334155', textStyle: { color: '#fafafa' } },
-      legend: { bottom: 0, textStyle: { color: '#94a3b8', fontSize: 10 } },
-      xAxis: { type: 'category', data: roles, axisLabel: { color: '#94a3b8', rotate: 30 } },
-      yAxis: { type: 'value', max: 1, axisLabel: { color: '#94a3b8', formatter: (v: number) => `${Math.round(v * 100)}%` }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.14)' } } },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: '#ffffff', borderColor: '#cbd5e1', textStyle: { color: '#1a2332' } },
+      legend: { bottom: 0, textStyle: { color: '#475569', fontSize: 10 } },
+      xAxis: { type: 'category', data: roles, axisLabel: { color: '#475569', rotate: 30 } },
+      yAxis: { type: 'value', max: 1, axisLabel: { color: '#475569', formatter: (v: number) => `${Math.round(v * 100)}%` }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
       series: models.map((model, index) => ({
         name: model,
         type: 'bar',
@@ -148,25 +148,25 @@ export default function DivergencePage() {
     return {
       backgroundColor: 'transparent',
       grid: { top: 24, right: 24, bottom: 42, left: 50 },
-      tooltip: { backgroundColor: '#0f172a', borderColor: '#334155', textStyle: { color: '#fafafa' }, formatter: (params: { data: (number | string)[] }) => `<b>${params.data[3]}</b><br/>${params.data[4]}<br/>AI/薪酬 ${formatRatio(Number(params.data[0]))}<br/>CR ${Number(params.data[1]).toFixed(2)}` },
-      xAxis: { name: 'AI/薪酬', axisLabel: { color: '#94a3b8', formatter: (v: number) => formatRatio(v) }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.14)' } } },
-      yAxis: { name: '代理CR', min: 0.5, max: 1.7, axisLabel: { color: '#94a3b8' }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.14)' } } },
-      series: [{ type: 'scatter', data: rows, symbolSize: (value: number[]) => value[2], itemStyle: { color: (params: { data: (number | string)[] }) => params.data[4] === '高用低薪' ? '#ef4444' : '#f59e0b', opacity: 0.78 } }],
+      tooltip: { backgroundColor: '#ffffff', borderColor: '#cbd5e1', textStyle: { color: '#1a2332' }, formatter: (params: { data: (number | string)[] }) => `<b>${params.data[3]}</b><br/>${params.data[4]}<br/>AI/薪酬 ${formatRatio(Number(params.data[0]))}<br/>CR ${Number(params.data[1]).toFixed(2)}` },
+      xAxis: { name: 'AI/薪酬', axisLabel: { color: '#475569', formatter: (v: number) => formatRatio(v) }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
+      yAxis: { name: '薪酬位档', min: 0.5, max: 1.7, axisLabel: { color: '#475569' }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
+      series: [{ type: 'scatter', data: rows, symbolSize: (value: number[]) => value[2], itemStyle: { color: (params: { data: (number | string)[] }) => params.data[4] === '高用低薪' ? '#dc2626' : '#d97706', opacity: 0.78 } }],
     }
   }, [pricing])
 
   const fragilityOption = useMemo(() => ({
     backgroundColor: 'transparent',
     grid: { top: 24, right: 24, bottom: 42, left: 50 },
-    tooltip: { backgroundColor: '#0f172a', borderColor: '#334155', textStyle: { color: '#fafafa' }, formatter: (params: { data: (number | string | boolean)[] }) => `<b>${params.data[3]}</b><br/>部门占比 ${formatRatio(Number(params.data[0]))}<br/>CR ${Number(params.data[1]).toFixed(2)}<br/>${projectName.get(String(params.data[4])) || params.data[4]}` },
-    xAxis: { name: '个人占部门AI比', max: 1, axisLabel: { color: '#94a3b8', formatter: (v: number) => formatRatio(v) }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.14)' } } },
-    yAxis: { name: '代理CR', min: 0.5, max: 1.7, axisLabel: { color: '#94a3b8' }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.14)' } } },
+    tooltip: { backgroundColor: '#ffffff', borderColor: '#cbd5e1', textStyle: { color: '#1a2332' }, formatter: (params: { data: (number | string | boolean)[] }) => `<b>${params.data[3]}</b><br/>部门占比 ${formatRatio(Number(params.data[0]))}<br/>CR ${Number(params.data[1]).toFixed(2)}<br/>${projectName.get(String(params.data[4])) || params.data[4]}` },
+    xAxis: { name: '个人占部门AI比', max: 1, axisLabel: { color: '#475569', formatter: (v: number) => formatRatio(v) }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
+    yAxis: { name: '薪酬位档', min: 0.5, max: 1.7, axisLabel: { color: '#475569' }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
     series: [{
       type: 'scatter',
       data: fragility.points.slice(0, 360).map(point => [point.deptShare, point.cr, point.tier === 'power' ? 18 : 11, point.id, point.project_id, point.fragile]),
       symbolSize: (value: number[]) => value[2],
-      itemStyle: { color: (params: { data: (number | string | boolean)[] }) => params.data[5] ? '#ef4444' : '#22d3ee', opacity: 0.72 },
-      markArea: { silent: true, itemStyle: { color: 'rgba(239,68,68,0.10)' }, data: [[{ xAxis: 0.1, yAxis: 0.5 }, { xAxis: 1, yAxis: 0.9 }]] },
+      itemStyle: { color: (params: { data: (number | string | boolean)[] }) => params.data[5] ? '#dc2626' : '#0891b2', opacity: 0.72 },
+      markArea: { silent: true, itemStyle: { color: 'rgba(220,38,38,0.08)' }, data: [[{ xAxis: 0.1, yAxis: 0.5 }, { xAxis: 1, yAxis: 0.9 }]] },
     }],
   }), [fragility, projectName])
 
@@ -174,9 +174,9 @@ export default function DivergencePage() {
     <div className="mx-auto max-w-[1440px] space-y-6 px-6 pb-24 pt-8">
       <CockpitTopbar />
       <header>
-        <div className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">02 · 分化地图</div>
+        <div className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-700">02 · 分化地图</div>
         <h1 className="mt-2 text-[30px] font-semibold leading-tight text-zinc-50">钱花在哪成了，哪没成？</h1>
-        <p className="mt-1.5 text-sm text-zinc-500">以五张交叉图定位 AI 投入、人效、岗位、模型与人才定价之间的分化。</p>
+        <p className="mt-1.5 text-sm text-slate-500">以五张交叉图定位 AI 投入、人效、岗位、模型与人才定价之间的分化。</p>
       </header>
       <AiBriefing title="分化要闻" prompt="基于分化地图，指出最重要的业务单元分化信号" />
 
@@ -186,12 +186,12 @@ export default function DivergencePage() {
         <>
           <section className="grid grid-cols-12 gap-5">
             <Card className="col-span-5 p-5">
-              <SectionHeader title="杠杆矩阵" caption="X=AI强度，Y=人效，气泡=人数" right={<FactTag />} />
+              <SectionHeader title="杠杆矩阵" caption="X=AI投入强度，Y=人效，气泡=人数" right={<FactTag />} />
               <ReactECharts option={leverageOption} style={{ height: 420 }} onEvents={{ click: (params: { data?: (number | string)[] }) => {
                 const id = params.data?.[4]
                 if (typeof id === 'string') router.push(`/attribution?id=${id}`)
               } }} />
-              <Insight text="高投入不等于有效，真正值得复制的是高人效且趋势上行的放大器。" />
+              <Insight text="高投入不等于有效，真正值得复制的是高人效且持续改善的项目。" />
             </Card>
             <Card className="col-span-4 p-5">
               <SectionHeader title="岗位×部门热力图" caption="颜色=同岗位人均 AI 成本" right={<FactTag />} />
@@ -199,7 +199,7 @@ export default function DivergencePage() {
               <Insight text="同岗位差距越大，越说明内部存在可迁移的方法样本。" />
             </Card>
             <Card className="col-span-3 p-5">
-              <SectionHeader title="模型×角色错配" caption="角色维度模型成本结构" right={<FactTag />} />
+              <SectionHeader title="模型用错地方了" caption="角色维度模型成本结构" right={<FactTag />} />
               <ReactECharts option={stackedOption} style={{ height: 420 }} />
               <Insight text={`${mismatch.filter(item => item.flag === 'mismatch_suspect').length} 个项目存在非技术主导但高价模型占比偏高的疑似错配。`} />
             </Card>
@@ -207,12 +207,12 @@ export default function DivergencePage() {
 
           <section className="grid grid-cols-2 gap-5">
             <Card className="p-5">
-              <SectionHeader title="薪酬倒挂 Bubble" caption="高薪低用 / 高用低薪两类人才定价错配" right={<SimulatedTag />} />
+              <SectionHeader title="薪酬偏低 Bubble" caption="高薪低用 / 高用低薪两类人才定价错配" right={<SimulatedTag />} />
               <ReactECharts option={pricingOption} style={{ height: 360 }} />
-              <Insight text={`CR 为 ${pricing.crSource === 'proxy' ? '代理' : '真实'}口径，高用低薪是预算调整时最需要保护的人群。`} />
+              <Insight text={`薪酬位档为${pricing.crSource === 'proxy' ? '代理' : '真实'}口径，高用低薪是预算调整时最需要保护的人群。`} />
             </Card>
             <Card className="p-5">
-              <SectionHeader title="个人依赖 × CR 脆弱扫描" caption="右下角=高依赖且薪酬倒挂" right={<FactTag />} />
+              <SectionHeader title="个人依赖 × 薪酬位档扫描" caption="右下角=高依赖且薪酬偏低" right={<FactTag />} />
               <ReactECharts option={fragilityOption} style={{ height: 360 }} />
               <Insight text={`${fragility.fragileCount} 名使用者落入高依赖低 CR 警戒区，需进入保人名单校验。`} />
             </Card>
@@ -221,8 +221,8 @@ export default function DivergencePage() {
           <Card className="p-5">
             <div className="flex items-start gap-3">
               <JudgmentTag />
-              <p className="text-[15px] leading-7 text-zinc-200">
-                分化研判：先处理待优化区的模型错配和低活跃问题，再把已验证放大器的方法迁移到同岗位差距最大的部门；涉及高依赖低 CR 人才时必须进入护栏。
+              <p className="text-[15px] leading-7 text-slate-800">
+                分化研判：先处理待改善项目的模型使用不匹配和低活跃问题，再把已让人效变好的方法迁移到同岗位差距最大的部门；涉及高依赖且薪酬偏低人才时必须进入护栏。
               </p>
             </div>
           </Card>
@@ -240,7 +240,7 @@ export default function DivergencePage() {
 
 function Insight({ text }: { text: string }) {
   return (
-    <p className="mt-2 rounded-lg border border-cyan-400/15 bg-cyan-400/5 px-3 py-2 text-sm leading-6 text-zinc-400">
+    <p className="mt-2 rounded-lg border border-cyan-400/15 bg-cyan-400/5 px-3 py-2 text-sm leading-6 text-slate-600">
       <JudgmentTag /> <span className="ml-2">{text.slice(0, 80)}</span>
     </p>
   )

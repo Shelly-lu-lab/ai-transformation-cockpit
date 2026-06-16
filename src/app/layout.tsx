@@ -17,14 +17,14 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="zh-CN" className="h-full bg-[#0b1020] antialiased">
-      <body className="min-h-full text-zinc-50">
+    <html lang="zh-CN" className="h-full bg-[#fafbfc] antialiased">
+      <body className="min-h-full text-[#1a2332]">
         <DataProvider>
           <AiDockProvider>
-          <div className="hidden min-h-screen items-center justify-center bg-[#0b1020] p-8 text-center text-zinc-200 max-xl:flex">
-            <div className="max-w-md rounded-lg border border-zinc-700/50 bg-zinc-900 p-6">
+          <div className="hidden min-h-screen items-center justify-center bg-[#fafbfc] p-8 text-center text-slate-700 max-xl:flex">
+            <div className="max-w-md rounded-lg border border-zinc-200 bg-white p-6 shadow-[var(--shadow-card)]">
               <div className="text-lg font-semibold">请使用桌面端查看</div>
-              <p className="mt-2 text-sm leading-6 text-zinc-400">
+              <p className="mt-2 text-sm leading-6 text-slate-500">
                 AI 转型驾驶舱为 1280px 以上经营分析大屏优化，请切换到更宽的窗口。
               </p>
             </div>

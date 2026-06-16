@@ -15,16 +15,16 @@ import {
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false })
 
 const quadrantLabel: Record<string, string> = {
-  amplifier: 'AI 放大区',
-  underperforming: '待优化区',
-  high_potential: '高潜力区',
+  amplifier: 'AI 已让人效变好',
+  underperforming: '待改善',
+  high_potential: '待加码',
   low_base: '基础区',
 }
 const quadrantTone: Record<string, string> = {
-  amplifier: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300',
-  underperforming: 'border-red-500/40 bg-red-500/10 text-red-300',
-  high_potential: 'border-blue-500/40 bg-blue-500/10 text-blue-300',
-  low_base: 'border-zinc-600/40 bg-zinc-700/20 text-zinc-400',
+  amplifier: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700',
+  underperforming: 'border-red-500/40 bg-red-500/10 text-red-700',
+  high_potential: 'border-blue-500/40 bg-blue-500/10 text-blue-700',
+  low_base: 'border-zinc-600/40 bg-zinc-700/20 text-slate-600',
 }
 
 function severityScore(severity: Severity) {
@@ -38,7 +38,7 @@ function MiniStepChart({ step }: { step: AttributionEvidence['steps'][number] })
   const values = step.facts.map((fact, index) => ({
     name: fact.label.slice(0, 4),
     value: Math.max(1, Number((fact.value.match(/\d+(\.\d+)?/) || ['1'])[0])),
-    itemStyle: { color: ['#22d3ee', '#3b82f6', '#f59e0b'][index % 3] },
+    itemStyle: { color: ['#0891b2', '#2563eb', '#d97706'][index % 3] },
   }))
   const option = step.key === 'model'
     ? { backgroundColor: 'transparent', series: [{ type: 'pie', radius: ['45%', '72%'], label: { show: false }, data: values }] }
@@ -46,8 +46,8 @@ function MiniStepChart({ step }: { step: AttributionEvidence['steps'][number] })
         backgroundColor: 'transparent',
         grid: { top: 8, right: 10, bottom: 18, left: 28 },
         xAxis: { type: 'category', data: values.map(v => v.name), axisLabel: { color: '#64748b', fontSize: 10 }, axisLine: { show: false } },
-        yAxis: { type: 'value', axisLabel: { show: false }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.12)' } } },
-        series: [{ type: step.key === 'attrition' ? 'bar' : 'line', smooth: true, data: values, barWidth: '45%', lineStyle: { color: '#22d3ee' }, itemStyle: { color: '#22d3ee' }, areaStyle: step.key === 'depth' ? { color: 'rgba(34,211,238,0.12)' } : undefined }],
+        yAxis: { type: 'value', axisLabel: { show: false }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.55)' } } },
+        series: [{ type: step.key === 'attrition' ? 'bar' : 'line', smooth: true, data: values, barWidth: '45%', lineStyle: { color: '#0891b2' }, itemStyle: { color: '#0891b2' }, areaStyle: step.key === 'depth' ? { color: 'rgba(8,145,178,0.10)' } : undefined }],
       }
   return <ReactECharts option={option} style={{ height: 96 }} />
 }
@@ -65,11 +65,11 @@ function RootCauseRadar({ evidence, ai }: { evidence: AttributionEvidence | null
         { name: '流失', max: 100 },
         { name: '组织', max: 100 },
       ],
-      axisName: { color: '#a1a1aa', fontSize: 11 },
-      splitLine: { lineStyle: { color: 'rgba(148,163,184,0.18)' } },
-      splitArea: { areaStyle: { color: ['rgba(15,23,42,0.35)', 'rgba(15,23,42,0.14)'] } },
+      axisName: { color: '#475569', fontSize: 11 },
+      splitLine: { lineStyle: { color: 'rgba(203,213,225,0.8)' } },
+      splitArea: { areaStyle: { color: ['rgba(241,245,249,0.9)', 'rgba(248,250,252,0.9)'] } },
     },
-    series: [{ type: 'radar', data: [{ value: scores.length === 5 ? scores : [0, 0, 0, 0, 0], areaStyle: { color: 'rgba(245,158,11,0.16)' }, lineStyle: { color: '#f59e0b' }, itemStyle: { color: '#f59e0b' } }] }],
+    series: [{ type: 'radar', data: [{ value: scores.length === 5 ? scores : [0, 0, 0, 0, 0], areaStyle: { color: 'rgba(217,119,6,0.14)' }, lineStyle: { color: '#d97706' }, itemStyle: { color: '#d97706' } }] }],
   }
   return <ReactECharts option={option} style={{ height: 220 }} />
 }
@@ -85,7 +85,7 @@ function AttributionInner() {
   const [revealed, setRevealed] = useState(0)
   const revealTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // URL 参数 / 默认项目（优先取待优化区 AI 投入最大的）
+  // URL 参数 / 默认项目（优先取待改善且 AI 投入最大的）
   useEffect(() => {
     if (projects.length === 0) return
     const fromUrl = params.get('id')
@@ -167,12 +167,12 @@ function AttributionInner() {
           <h1 className="mt-2 text-[28px] font-semibold leading-tight text-zinc-50">
             为什么投了钱，人效没起来？
           </h1>
-          <p className="mt-1.5 text-sm text-zinc-500">系统沿五条因果线逐步排查，AI 交叉研判根因——每一步都有证据。</p>
+          <p className="mt-1.5 text-sm text-slate-500">系统沿五条因果线逐步排查，AI 交叉研判根因——每一步都有证据。</p>
         </div>
         <select
           value={selectedId ?? ''}
           onChange={e => router.replace(`/attribution?id=${e.target.value}`)}
-          className="h-10 rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-sm text-zinc-200 outline-none focus:border-blue-500"
+          className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-slate-800 outline-none focus:border-blue-500"
         >
           {[...projects].sort((a, b) => a.productivity - b.productivity).map(p => (
             <option key={p.id} value={p.id}>
@@ -190,7 +190,7 @@ function AttributionInner() {
           <div className="flex items-center gap-4">
             <div>
               <div className="text-xl font-semibold text-zinc-50">{project.name}</div>
-              <div className="mt-0.5 text-xs text-zinc-500">{project.type} · {project.headcount} 人</div>
+              <div className="mt-0.5 text-xs text-slate-500">{project.type} · {project.headcount} 人</div>
             </div>
             <span className={`rounded-full border px-3 py-1 text-xs font-medium ${quadrantTone[project.quadrant]}`}>
               {quadrantLabel[project.quadrant]}
@@ -198,16 +198,16 @@ function AttributionInner() {
           </div>
           <div className="flex gap-8 text-right">
             <div>
-              <div className="text-[10px] uppercase tracking-wider text-zinc-600">人效</div>
-              <div className="text-xl font-bold tabular-nums text-zinc-100">{formatProductivity(project.productivity)}</div>
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">人效</div>
+              <div className="text-xl font-bold tabular-nums text-slate-900">{formatProductivity(project.productivity)}</div>
             </div>
             <div>
-              <div className="text-[10px] uppercase tracking-wider text-zinc-600">AI 强度</div>
-              <div className="text-xl font-bold tabular-nums text-zinc-100">{formatRatio(project.ai_intensity)}</div>
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">AI 投入强度</div>
+              <div className="text-xl font-bold tabular-nums text-slate-900">{formatRatio(project.ai_intensity)}</div>
             </div>
             {evidence?.benchmark && (
               <div>
-                <div className="text-[10px] uppercase tracking-wider text-zinc-600">对照标杆</div>
+                <div className="text-[10px] uppercase tracking-wider text-slate-500">对照标杆</div>
                 <div className="text-sm font-medium text-emerald-400">{evidence.benchmark.name}（人效 {formatProductivity(evidence.benchmark.productivity)}）</div>
               </div>
             )}
@@ -223,13 +223,13 @@ function AttributionInner() {
               const severity: Severity = aiStep?.severity ?? step.severity
               const visible = revealed > index || (!aiLoading && !ai)
               return (
-                <div key={step.key} className={`relative rounded-xl border px-3 py-3 transition-all ${visible ? 'border-cyan-400/35 bg-cyan-400/5' : 'border-zinc-800 bg-zinc-950/40 opacity-50'}`}>
+                <div key={step.key} className={`relative rounded-xl border px-3 py-3 transition-all ${visible ? 'border-cyan-400/35 bg-cyan-400/5' : 'border-zinc-200 bg-slate-50/70 opacity-50'}`}>
                   {index < evidence.steps.length - 1 ? <span className="absolute left-[calc(100%-0.75rem)] top-6 h-px w-6 bg-zinc-700" /> : null}
                   <div className="flex items-center justify-between">
-                    <span className="grid h-7 w-7 place-items-center rounded-full border border-zinc-700 text-[11px] font-bold text-zinc-400">{index + 1}</span>
+                    <span className="grid h-7 w-7 place-items-center rounded-full border border-zinc-200 text-[11px] font-bold text-slate-600">{index + 1}</span>
                     <SeverityBadge severity={severity} />
                   </div>
-                  <div className="mt-3 text-sm font-medium text-zinc-200">{step.title}</div>
+                  <div className="mt-3 text-sm font-medium text-slate-800">{step.title}</div>
                 </div>
               )
             })}
@@ -249,12 +249,12 @@ function AttributionInner() {
               className={`transition-all duration-500 ${visible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'}`}
             >
               <Card className="overflow-hidden">
-                <div className="flex items-center justify-between border-b border-zinc-800/80 px-5 py-3">
+                <div className="flex items-center justify-between border-b border-zinc-200/80 px-5 py-3">
                   <div className="flex items-center gap-3">
-                    <span className="grid h-6 w-6 place-items-center rounded-md border border-zinc-700 text-[11px] font-bold text-zinc-500">
+                    <span className="grid h-6 w-6 place-items-center rounded-md border border-zinc-200 text-[11px] font-bold text-slate-500">
                       {i + 1}
                     </span>
-                    <span className="text-sm font-semibold text-zinc-100">{step.title}</span>
+                    <span className="text-sm font-semibold text-slate-900">{step.title}</span>
                   </div>
                   <SeverityBadge severity={severity} />
                 </div>
@@ -264,15 +264,15 @@ function AttributionInner() {
                     <FactTag />
                     {step.facts.map((f, j) => (
                       <div key={j} className="flex items-baseline justify-between gap-3">
-                        <span className="text-xs text-zinc-500">{f.label}</span>
+                        <span className="text-xs text-slate-500">{f.label}</span>
                         <span className="text-right">
-                          <span className="text-sm font-semibold tabular-nums text-zinc-200">{f.value}</span>
-                          {f.benchmark && <span className="ml-2 text-[11px] text-zinc-600">{f.benchmark}</span>}
+                          <span className="text-sm font-semibold tabular-nums text-slate-800">{f.value}</span>
+                          {f.benchmark && <span className="ml-2 text-[11px] text-slate-500">{f.benchmark}</span>}
                         </span>
                       </div>
                     ))}
                     <MiniStepChart step={step} />
-                    <p className="border-t border-zinc-800/60 pt-2 text-xs leading-5 text-zinc-400">{step.finding}</p>
+                    <p className="border-t border-zinc-200/60 pt-2 text-xs leading-5 text-slate-600">{step.finding}</p>
                   </div>
                   {/* 右：AI 研判 */}
                   <div className="px-5 py-4">
@@ -283,7 +283,7 @@ function AttributionInner() {
                         <Skeleton className="h-3.5 w-4/5" />
                       </div>
                     ) : (
-                      <p className="mt-2.5 text-sm leading-relaxed text-zinc-200">
+                      <p className="mt-2.5 text-sm leading-relaxed text-slate-800">
                         {aiStep?.judgment || 'AI 研判暂不可用，参考左侧系统计算事实。'}
                       </p>
                     )}
@@ -303,7 +303,7 @@ function AttributionInner() {
             <div className="flex items-center gap-3">
               <JudgmentTag />
               {ai && (
-                <span className="rounded-md border border-zinc-700 px-2 py-1 text-[11px] text-zinc-500">
+                <span className="rounded-md border border-zinc-200 px-2 py-1 text-[11px] text-slate-500">
                   置信度 {ai.confidence === 'high' ? '高' : ai.confidence === 'medium' ? '中' : '低'}
                 </span>
               )}
@@ -314,7 +314,7 @@ function AttributionInner() {
             {aiLoading ? (
               <div className="space-y-2"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-3/4" /></div>
             ) : (
-              <p className="text-[15px] leading-relaxed text-zinc-100">
+              <p className="text-[15px] leading-relaxed text-slate-900">
                 {ai?.root_cause || 'AI 根因综合暂不可用；请基于上方五步事实自行研判。'}
               </p>
             )}

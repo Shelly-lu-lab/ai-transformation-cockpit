@@ -58,13 +58,13 @@ function verdictContext(): string {
     .sort((a, b) => b.ai_intensity - a.ai_intensity).slice(0, 3)
   const confirmed = lm.points.filter(p => p.verdict === 'amplifier_confirmed')
 
-  return `【北极星】人效 ${vi.northStar.productivity.toFixed(2)}｜AI/人力 ${(vi.northStar.aiToLaborRatio * 100).toFixed(1)}%｜关键人才在险 ${vi.northStar.criticalTalentCount} 人
+  return `【北极星】人效 ${vi.northStar.productivity.toFixed(2)}｜AI/人力 ${(vi.northStar.aiToLaborRatio * 100).toFixed(1)}%｜关键高流失风险人才 ${vi.northStar.criticalTalentCount} 人
 
-【钱】放大器已验证 ${vi.moneyDim.amplifierConfirmed} 个（${confirmed.map(p => `${p.name} 人效趋势+${(p.monthlyRate * 100).toFixed(1)}%/月`).join('、') || '无'}）；未验证放大器 ${vi.moneyDim.amplifierUnproven} 个（高投入高人效但趋势未上行）；待优化区 ${vi.moneyDim.underperforming} 个、AI 月投入 ${fmtWan(vi.moneyDim.underperformingAiCost)}（Top: ${topUnder.map(p => `${p.name}(AI强度${(p.ai_intensity * 100).toFixed(0)}%人效${p.productivity.toFixed(2)})`).join('、')}）；人效趋势↑项目 ${vi.moneyDim.trendUpCount}/${projects.length}
+【钱】有效样本已验证 ${vi.moneyDim.amplifierConfirmed} 个（${confirmed.map(p => `${p.name} 人效趋势+${(p.monthlyRate * 100).toFixed(1)}%/月`).join('、') || '无'}）；未验证有效样本 ${vi.moneyDim.amplifierUnproven} 个（高投入高人效但趋势未上行）；待改善 ${vi.moneyDim.underperforming} 个、AI 月投入 ${fmtWan(vi.moneyDim.underperformingAiCost)}（Top: ${topUnder.map(p => `${p.name}(AI投入强度${(p.ai_intensity * 100).toFixed(0)}%人效${p.productivity.toFixed(2)})`).join('、')}）；人效人效在改善项目 ${vi.moneyDim.trendUpCount}/${projects.length}
 
-【效率】Power ${vi.efficiencyDim.powerCount} 人占个人AI成本 ${(vi.efficiencyDim.powerCostShare * 100).toFixed(0)}%；活跃<12天的项目 ${vi.efficiencyDim.lowActiveProjects} 个；疑似模型错配 ${mm.length} 个（${mm.slice(0, 3).map(m => `${m.name}:${m.dominantRole}主导但高价模型${(m.expensiveShare * 100).toFixed(0)}%`).join('、')}）；同岗位跨部门差距 Top（${div.map(d => `${d.role} ${d.gapMultiple}×`).join('、')}）
+【效率】重度使用者 ${vi.efficiencyDim.powerCount} 人占个人AI成本 ${(vi.efficiencyDim.powerCostShare * 100).toFixed(0)}%；活跃<12天的项目 ${vi.efficiencyDim.lowActiveProjects} 个；疑似模型错配 ${mm.length} 个（${mm.slice(0, 3).map(m => `${m.name}:${m.dominantRole}主导但高价模型${(m.expensiveShare * 100).toFixed(0)}%`).join('、')}）；同岗位跨部门差距 Top（${div.map(d => `${d.role} ${d.gapMultiple}×`).join('、')}）
 
-【人】关键人才在险 ${vi.peopleDim.criticalTalent.length} 人（Power∩CR倒挂∩流失环境），集中在 ${[...new Set(vi.peopleDim.criticalTalent.slice(0, 10).map(c => c.project_name))].join('、')}；Power 用户已流失 ${vi.peopleDim.totalPowerExits} 人；低留任团队 ${vi.peopleDim.lowStayProjects} 个`
+【人】高流失风险人才 ${vi.peopleDim.criticalTalent.length} 人（重度使用者∩薪酬位档偏低∩流失环境），集中在 ${[...new Set(vi.peopleDim.criticalTalent.slice(0, 10).map(c => c.project_name))].join('、')}；重度使用者已流失 ${vi.peopleDim.totalPowerExits} 人；低留任团队 ${vi.peopleDim.lowStayProjects} 个`
 }
 
 function attributionContext(projectId: string): string | null {
@@ -74,8 +74,8 @@ function attributionContext(projectId: string): string | null {
   const stepsText = ev.steps.map(s =>
     `[${s.key}] ${s.title}｜系统预判严重度=${s.severity}｜事实：${s.facts.map(f => `${f.label}=${f.value}${f.benchmark ? `（${f.benchmark}）` : ''}`).join('；')}｜系统计算结论：${s.finding}`
   ).join('\n')
-  return `目标项目：${ev.project.name}（${ev.project.type}，${ev.project.headcount}人，象限=${ev.project.quadrant}，人效=${ev.project.productivity.toFixed(2)}，AI强度=${(ev.project.ai_intensity * 100).toFixed(0)}%）
-对照标杆：${ev.benchmark ? `${ev.benchmark.name}（人效=${ev.benchmark.productivity.toFixed(2)}，AI强度=${(ev.benchmark.ai_intensity * 100).toFixed(0)}%）` : '无'}
+  return `目标项目：${ev.project.name}（${ev.project.type}，${ev.project.headcount}人，象限=${ev.project.quadrant}，人效=${ev.project.productivity.toFixed(2)}，AI投入强度=${(ev.project.ai_intensity * 100).toFixed(0)}%）
+对照标杆：${ev.benchmark ? `${ev.benchmark.name}（人效=${ev.benchmark.productivity.toFixed(2)}，AI投入强度=${(ev.benchmark.ai_intensity * 100).toFixed(0)}%）` : '无'}
 
 五步证据包：
 ${stepsText}`
@@ -96,7 +96,7 @@ function decisionContext(message: string): string {
 
 【保人名单（护栏，强制检查）】共 ${critical.length} 人：${guardText || '无'}
 
-【可用标杆】已验证放大器：${confirmed.map(p => `${p.name}（AI强度${(p.ai_intensity * 100).toFixed(0)}%，人效${p.productivity.toFixed(2)}，月增${(p.monthlyRate * 100).toFixed(1)}%）`).join('、') || '无'}
+【可用标杆】已验证有效样本：${confirmed.map(p => `${p.name}（AI投入强度${(p.ai_intensity * 100).toFixed(0)}%，人效${p.productivity.toFixed(2)}，月增${(p.monthlyRate * 100).toFixed(1)}%）`).join('、') || '无'}
 
 【用户意图】${message}`
 }

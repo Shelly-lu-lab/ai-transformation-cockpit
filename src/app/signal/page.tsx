@@ -20,9 +20,9 @@ const quadrantColor: Record<Quadrant, string> = {
 }
 
 const quadrantLabel: Record<Quadrant, string> = {
-  amplifier: 'AI 放大区',
-  underperforming: '待优化区',
-  high_potential: '高潜力区',
+  amplifier: 'AI 有效区',
+  underperforming: '待改善',
+  high_potential: '待加码',
   low_base: '基础区',
 }
 
@@ -50,13 +50,13 @@ function buildDiagnosis(project: ProjectWithMetrics, medianProductivity: number,
     return {
       tone: 'red',
       title: 'AI 投入尚未转化为人效',
-      summary: `${project.name} 的 AI 强度为中位数 ${aiGap.toFixed(1)} 倍，但人效较中位数 ${formatRatio(productivityGap)}，需要先优化使用结构再扩大投入。`,
+      summary: `${project.name} 的 AI 投入强度为中位数 ${aiGap.toFixed(1)} 倍，但人效较中位数 ${formatRatio(productivityGap)}，需要先优化使用结构再扩大投入。`,
       evidences: [
-        `AI 月成本 ${formatWan(project.ai_cost)}，AI 强度 ${formatRatio(project.ai_intensity)}`,
+        `AI 月成本 ${formatWan(project.ai_cost)}，AI 投入强度 ${formatRatio(project.ai_intensity)}`,
         topModel ? `${topModel[0]} 占 AI 成本 ${formatRatio(topModel[1])}` : '模型结构暂无明显集中项',
-        `Power 用户 ${project.power_user_profile.count} 人，高风险核心人才 ${highRiskCount} 人`,
+        `重度使用者 ${project.power_user_profile.count} 人，高风险核心人才 ${highRiskCount} 人`,
       ],
-      action: '建议进入决策推演：缩减低效 AI 消耗，保留 Power 用户额度，并设置 3 个月人效观察点。',
+      action: '建议进入决策推演：缩减低效 AI 消耗，保留 重度使用者额度，并设置 3 个月人效观察点。',
     }
   }
 
@@ -64,13 +64,13 @@ function buildDiagnosis(project: ProjectWithMetrics, medianProductivity: number,
     return {
       tone: 'blue',
       title: '业务基本面好，AI 加码空间明确',
-      summary: `${project.name} 人效较中位数 ${formatRatio(productivityGap)}，但 AI 强度仍低于中位数，适合做小步快跑的 AI 预算加码实验。`,
+      summary: `${project.name} 人效较中位数 ${formatRatio(productivityGap)}，但 AI 投入强度仍低于中位数，适合做小步快跑的 AI 预算加码实验。`,
       evidences: [
         `当前人效 ${formatProductivity(project.productivity)}，利润 ${formatWan(project.profit)}`,
         `AI 覆盖率 ${formatPercent(project.ai_penetration)}，月均活跃 ${project.avg_active_days.toFixed(1)} 天`,
         topRole ? `核心岗位为 ${topRole[0]}，共 ${topRole[1]} 人` : '岗位结构暂无数据',
       ],
-      action: '建议优先覆盖高产出岗位，扩大 Power 用户比例，并和放大区标杆做方法迁移。',
+      action: '建议优先覆盖高产出岗位，扩大 重度使用者比例，并和有效区标杆做方法迁移。',
     }
   }
 
@@ -78,22 +78,22 @@ function buildDiagnosis(project: ProjectWithMetrics, medianProductivity: number,
     return {
       tone: 'green',
       title: 'AI 投入正在放大业务产出',
-      summary: `${project.name} 同时高于 AI 强度和人效中位数，是当前组合里的 AI 转型标杆。`,
+      summary: `${project.name} 同时高于 AI 投入强度和人效中位数，是当前组合里的 AI 转型标杆。`,
       evidences: [
-        `人效 ${formatProductivity(project.productivity)}，AI 强度 ${formatRatio(project.ai_intensity)}`,
-        `Power 用户 ${project.power_user_profile.count} 人，平均 AI 成本 ${formatWan(project.power_user_profile.avg_ai_cost)}`,
+        `人效 ${formatProductivity(project.productivity)}，AI 投入强度 ${formatRatio(project.ai_intensity)}`,
+        `重度使用者 ${project.power_user_profile.count} 人，平均 AI 成本 ${formatWan(project.power_user_profile.avg_ai_cost)}`,
         topModel ? `主用模型为 ${topModel[0]}，成本占比 ${formatRatio(topModel[1])}` : '模型结构暂无明显集中项',
       ],
-      action: '建议沉淀工作流和岗位用法，作为待优化区的训练样板。',
+      action: '建议沉淀工作流和岗位用法，作为待改善的训练样板。',
     }
   }
 
   return {
     tone: 'zinc',
     title: '业务与 AI 投入均处于基础区',
-    summary: `${project.name} 当前人效和 AI 强度均低于中位数，优先判断业务基本面，再决定是否做 AI 投入。`,
+    summary: `${project.name} 当前人效和 AI 投入强度均低于中位数，优先判断业务基本面，再决定是否做 AI 投入。`,
     evidences: [
-      `人效 ${formatProductivity(project.productivity)}，AI 强度 ${formatRatio(project.ai_intensity)}`,
+      `人效 ${formatProductivity(project.productivity)}，AI 投入强度 ${formatRatio(project.ai_intensity)}`,
       `团队 ${project.headcount} 人，AI 覆盖率 ${formatPercent(project.ai_penetration)}`,
       `近期离职 ${project.recent_turnover.total_exits} 人`,
     ],
@@ -163,11 +163,11 @@ export default function SignalPage() {
       textStyle: { color: '#fafafa' },
       formatter: (params: unknown) => {
         const data = (params as unknown as { data: QuadrantPoint }).data
-        return [`<b>${data[2]}</b>`, `AI 强度：${formatRatio(data[0])}（AI成本/人力成本）`, `人效：${formatProductivity(data[1])}`, quadrantLabel[data[4]]].join('<br/>')
+        return [`<b>${data[2]}</b>`, `AI 投入强度：${formatRatio(data[0])}（AI成本/人力成本）`, `人效：${formatProductivity(data[1])}`, quadrantLabel[data[4]]].join('<br/>')
       },
     },
     xAxis: {
-      name: 'AI强度(AI/人力)',
+      name: 'AI投入强度(AI/人力)',
       type: 'log',
       min: 0.005,
       max: Math.min(5, Math.max(...projects.map(p => p.ai_intensity)) * 1.2),
@@ -184,9 +184,9 @@ export default function SignalPage() {
       nameTextStyle: { color: '#a1a1aa' },
     },
     graphic: [
-      { type: 'text', right: 36, top: 36, style: { text: 'AI 放大区', fill: 'rgba(34,197,94,0.45)', fontSize: 12, fontWeight: 600 } },
-      { type: 'text', right: 36, bottom: 60, style: { text: '待优化区', fill: 'rgba(239,68,68,0.45)', fontSize: 12, fontWeight: 600 } },
-      { type: 'text', left: 66, top: 36, style: { text: '高潜力区', fill: 'rgba(59,130,246,0.45)', fontSize: 12, fontWeight: 600 } },
+      { type: 'text', right: 36, top: 36, style: { text: 'AI 有效区', fill: 'rgba(34,197,94,0.45)', fontSize: 12, fontWeight: 600 } },
+      { type: 'text', right: 36, bottom: 60, style: { text: '待改善', fill: 'rgba(239,68,68,0.45)', fontSize: 12, fontWeight: 600 } },
+      { type: 'text', left: 66, top: 36, style: { text: '待加码', fill: 'rgba(59,130,246,0.45)', fontSize: 12, fontWeight: 600 } },
       { type: 'text', left: 66, bottom: 60, style: { text: '基础区', fill: 'rgba(113,113,122,0.55)', fontSize: 12, fontWeight: 600 } },
     ],
     series: [
@@ -238,7 +238,7 @@ export default function SignalPage() {
   }
 
   if (error) {
-    return <div className="mx-auto max-w-[1440px] p-6 text-red-300">数据加载失败：{error}</div>
+    return <div className="mx-auto max-w-[1440px] p-6 text-red-700">数据加载失败：{error}</div>
   }
 
   return (
@@ -246,19 +246,19 @@ export default function SignalPage() {
       <header className="flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-50">AI 价值信号</h1>
-          <p className="mt-1 text-sm text-zinc-400">按 AI 强度、人效、岗位和人才护栏解释投入信号；AI 强度 = AI 成本 / 人力成本</p>
+          <p className="mt-1 text-sm text-slate-600">按 AI 投入强度、人效、岗位和人才护栏解释投入信号；AI 投入强度 = AI 成本 / 人力成本</p>
         </div>
-        {selectedProject ? <div className="text-xs text-zinc-500">当前：{selectedProject.name}</div> : null}
+        {selectedProject ? <div className="text-xs text-slate-500">当前：{selectedProject.name}</div> : null}
       </header>
 
       <section className="grid grid-cols-[40fr_60fr] gap-4">
-        <div className="rounded-lg border border-zinc-700/50 bg-zinc-900 p-4">
+        <div className="rounded-lg border border-zinc-200/70 bg-white p-4">
 	          <div className="mb-3 flex items-center justify-between gap-3">
-	            <h2 className="text-sm font-semibold text-zinc-100">四象限矩阵</h2>
-	            <span className="text-xs text-zinc-500">横轴 AI 强度 = AI 成本 / 人力成本</span>
+	            <h2 className="text-sm font-semibold text-slate-900">四象限矩阵</h2>
+	            <span className="text-xs text-slate-500">横轴 AI 投入强度 = AI 成本 / 人力成本</span>
 	          </div>
           {isLoading ? (
-            <div className="h-[560px] animate-pulse rounded bg-zinc-800/60" />
+            <div className="h-[560px] animate-pulse rounded bg-slate-200/70" />
           ) : (
             <ReactECharts
               option={quadrantOption}
@@ -276,10 +276,10 @@ export default function SignalPage() {
         <div className="space-y-4">
           {selectedProject ? (
             <>
-	              <div className="flex items-center justify-between rounded-lg border border-zinc-700/50 bg-zinc-900 px-4 py-3">
+	              <div className="flex items-center justify-between rounded-lg border border-zinc-200/70 bg-white px-4 py-3">
                 <div>
                   <h2 className="text-xl font-semibold text-zinc-50">{selectedProject.name}</h2>
-                  <p className="text-sm text-zinc-400">{selectedProject.type} · {selectedProject.headcount} 人</p>
+                  <p className="text-sm text-slate-600">{selectedProject.type} · {selectedProject.headcount} 人</p>
                 </div>
                 <span
                   className="rounded-full px-3 py-1 text-xs font-medium text-zinc-950"
@@ -292,8 +292,8 @@ export default function SignalPage() {
 	              <ProjectDashboard project={selectedProject} trend={selectedTrend} talents={talentRisk} />
 	            </>
           ) : (
-            <div className="flex h-96 items-center justify-center rounded-lg border border-dashed border-zinc-700 bg-zinc-900/50">
-              <p className="text-sm text-zinc-500">点击左侧四象限图中的项目查看详情</p>
+            <div className="flex h-96 items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-white/50">
+              <p className="text-sm text-slate-500">点击左侧四象限图中的项目查看详情</p>
             </div>
           )}
         </div>
@@ -327,8 +327,8 @@ function DiagnosisCard({ diagnosis, project }: { diagnosis: ReturnType<typeof bu
       : diagnosis.tone === 'green'
         ? 'border-green-500/30 bg-green-500/5 text-green-200'
         : diagnosis.tone === 'blue'
-          ? 'border-blue-500/30 bg-blue-500/5 text-blue-200'
-          : 'border-zinc-700/50 bg-zinc-900 text-zinc-200'
+          ? 'border-blue-500/30 bg-blue-500/5 text-blue-700'
+          : 'border-zinc-200/70 bg-white text-slate-800'
 
   return (
     <section className={`rounded-lg border p-4 ${toneClass}`}>
@@ -336,23 +336,23 @@ function DiagnosisCard({ diagnosis, project }: { diagnosis: ReturnType<typeof bu
         <div>
           <div className="text-xs font-medium uppercase tracking-[0.16em] opacity-70">诊断结论</div>
           <h3 className="mt-2 text-base font-semibold text-zinc-50">{diagnosis.title}</h3>
-          <p className="mt-2 text-sm leading-6 text-zinc-300">{diagnosis.summary}</p>
+          <p className="mt-2 text-sm leading-6 text-slate-700">{diagnosis.summary}</p>
         </div>
         <a
           href={`/decision?project=${encodeURIComponent(project.id)}&intent=${getDecisionIntent(project)}`}
-          className="shrink-0 rounded-md border border-blue-500/40 bg-blue-500/10 px-3 py-2 text-xs font-medium text-blue-200 hover:bg-blue-500/20"
+          className="shrink-0 rounded-md border border-blue-500/40 bg-blue-500/10 px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-500/20"
         >
           生成方案
         </a>
       </div>
       <div className="mt-4 grid grid-cols-3 gap-2">
         {diagnosis.evidences.map((item) => (
-          <div key={item} className="rounded-md border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-xs leading-5 text-zinc-400">
+          <div key={item} className="rounded-md border border-zinc-200 bg-white/70 px-3 py-2 text-xs leading-5 text-slate-600">
             {item}
           </div>
         ))}
       </div>
-      <div className="mt-3 rounded-md border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-xs text-zinc-300">
+      <div className="mt-3 rounded-md border border-zinc-200 bg-white/70 px-3 py-2 text-xs text-slate-700">
         {diagnosis.action}
       </div>
     </section>

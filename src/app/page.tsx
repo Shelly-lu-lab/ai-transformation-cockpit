@@ -56,15 +56,15 @@ export default function Home() {
   return (
     <div className="mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-[1440px] items-center justify-center px-6 py-10">
       <section className="w-full max-w-[860px] text-center">
-        <div className="mx-auto mb-6 grid h-12 w-12 place-items-center rounded-lg border border-blue-500/40 bg-blue-500/10 text-sm font-bold text-blue-300">
+        <div className="mx-auto mb-6 grid h-12 w-12 place-items-center rounded-lg border border-blue-500/40 bg-blue-500/10 text-sm font-bold text-blue-700">
           AI
         </div>
         <h1 className="text-5xl font-semibold tracking-tight text-zinc-50">AI 转型驾驶舱</h1>
-        <p className="mt-4 text-lg text-zinc-400">用 AI 算清 AI 转型这笔账：投入在哪里撬动了人效，在哪里需要调整</p>
+        <p className="mt-4 text-lg text-slate-600">用 AI 算清 AI 转型这笔账：投入在哪里撬动了人效，在哪里需要调整</p>
 
-        <div className="mt-10 rounded-lg border border-dashed border-zinc-700 bg-zinc-900/70 p-8">
-          <div className="text-sm font-medium text-zinc-200">上传三类数据，AI 自动生成决策分析</div>
-          <p className="mt-2 text-xs text-zinc-500">支持一次选择多个文件（业务产出 + 人力成本 + AI 使用日志），格式：.xlsx / .csv</p>
+        <div className="mt-10 rounded-lg border border-dashed border-zinc-200 bg-white/70 p-8">
+          <div className="text-sm font-medium text-slate-800">上传三类数据，AI 自动生成决策分析</div>
+          <p className="mt-2 text-xs text-slate-500">支持一次选择多个文件（业务产出 + 人力成本 + AI 使用日志），格式：.xlsx / .csv</p>
           <div className="mt-4 flex justify-center gap-2 text-xs">
             {[
               ['人力成本模板', '/templates/人力成本数据.xlsx'],
@@ -75,7 +75,7 @@ export default function Home() {
                 key={href}
                 href={href}
                 download
-                className="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-zinc-300 hover:border-blue-500/60 hover:text-blue-200"
+                className="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-slate-700 hover:border-blue-500/60 hover:text-blue-700"
               >
                 {label}
               </a>
@@ -103,11 +103,11 @@ export default function Home() {
               event.preventDefault()
               if (event.dataTransfer.files.length > 0) handleFiles(event.dataTransfer.files)
             }}
-            className="mt-5 w-full cursor-pointer rounded-lg border-2 border-dashed border-zinc-600 bg-zinc-950/50 px-6 py-8 text-center transition-colors hover:border-blue-500/60 hover:bg-zinc-900"
+            className="mt-5 w-full cursor-pointer rounded-lg border-2 border-dashed border-zinc-600 bg-slate-50/80 px-6 py-8 text-center transition-colors hover:border-blue-500/60 hover:bg-white"
           >
-            <div className="mx-auto grid h-9 w-12 place-items-center rounded border border-zinc-700 bg-zinc-900 text-[11px] font-semibold tracking-[0.16em] text-zinc-500">DATA</div>
-            <div className="mt-2 text-sm text-zinc-300">{isParsing ? '正在解析文件...' : '点击选择文件（可多选）'}</div>
-            <div className="mt-1 text-xs text-zinc-500">支持拖拽；可上传上方模板三表，或 projects / monthly_trend / talent_risk schema 文件</div>
+            <div className="mx-auto grid h-9 w-12 place-items-center rounded border border-zinc-200 bg-white text-[11px] font-semibold tracking-[0.16em] text-slate-500">DATA</div>
+            <div className="mt-2 text-sm text-slate-700">{isParsing ? '正在解析文件...' : '点击选择文件（可多选）'}</div>
+            <div className="mt-1 text-xs text-slate-500">支持拖拽；可上传上方模板三表，或 projects / monthly_trend / talent_risk schema 文件</div>
           </button>
 
           {files.length > 0 && (
@@ -124,8 +124,8 @@ export default function Home() {
                     {f.status === 'ready' ? '✓' : f.status === 'warning' ? '!' : '×'}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <div className="truncate text-sm text-zinc-200">{f.name}</div>
-                    <div className="text-xs text-zinc-500">{f.message} · {f.rows} 行 × {f.cols} 列 · {f.columns.join(', ') || '无字段'}</div>
+                    <div className="truncate text-sm text-slate-800">{f.name}</div>
+                    <div className="text-xs text-slate-500">{f.message} · {f.rows} 行 × {f.cols} 列 · {f.columns.join(', ') || '无字段'}</div>
                   </div>
                 </div>
               ))}
@@ -156,8 +156,8 @@ export default function Home() {
         </div>
 
         {isProcessing && (
-          <div className="mx-auto mt-8 max-w-xl rounded-lg border border-zinc-700/50 bg-zinc-900 p-4 text-left">
-            <div className="text-xs font-medium uppercase tracking-[0.2em] text-zinc-500">Processing</div>
+          <div className="mx-auto mt-8 max-w-xl rounded-lg border border-zinc-200/70 bg-white p-4 text-left">
+            <div className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">Processing</div>
             <div className="mt-4 space-y-3">
               {steps.map((step, index) => {
                 const done = activeStep >= index
@@ -167,11 +167,11 @@ export default function Home() {
                     className={[
                       'flex items-center gap-3 rounded-md border px-3 py-2 text-sm transition-opacity duration-300',
                       done
-                        ? 'border-blue-500/30 bg-blue-500/10 text-zinc-100 opacity-100'
-                        : 'border-zinc-800 bg-zinc-950 text-zinc-600 opacity-60',
+                        ? 'border-blue-500/30 bg-blue-500/10 text-slate-900 opacity-100'
+                        : 'border-zinc-200 bg-white text-slate-500 opacity-60',
                     ].join(' ')}
                   >
-                    <span className={done ? 'text-blue-300' : 'text-zinc-700'}>{done ? '✓' : '•'}</span>
+                    <span className={done ? 'text-blue-700' : 'text-slate-400'}>{done ? '✓' : '•'}</span>
                     {step}
                   </div>
                 )
@@ -198,17 +198,17 @@ function DataCompleteness({ dataset }: { dataset: UploadedDataset }) {
 
   return (
     <div className="rounded-md border border-blue-500/30 bg-blue-500/5 p-3">
-      <div className="mb-2 text-center text-xs font-medium text-blue-300">已生成可分析数据集</div>
+      <div className="mb-2 text-center text-xs font-medium text-blue-700">已生成可分析数据集</div>
       <div className="grid grid-cols-4 gap-2">
         {items.map((item) => (
-          <div key={item.label} className="rounded border border-zinc-800 bg-zinc-950/80 px-2 py-2 text-center">
-            <div className={item.ready ? 'text-sm font-semibold tabular-nums text-zinc-100' : 'text-sm font-semibold text-amber-300'}>{item.value}</div>
-            <div className="mt-1 text-[10px] text-zinc-500">{item.label}</div>
+          <div key={item.label} className="rounded border border-zinc-200 bg-white/80 px-2 py-2 text-center">
+            <div className={item.ready ? 'text-sm font-semibold tabular-nums text-slate-900' : 'text-sm font-semibold text-amber-700'}>{item.value}</div>
+            <div className="mt-1 text-[10px] text-slate-500">{item.label}</div>
           </div>
         ))}
       </div>
       {!hasTalent ? (
-        <div className="mt-2 text-center text-[11px] text-amber-300">未上传人才风险数据时，系统仍可做人效和 AI 投入分析，人才护栏将使用降级提示。</div>
+        <div className="mt-2 text-center text-[11px] text-amber-700">未上传人才风险数据时，系统仍可做人效和 AI 投入分析，人才护栏将使用降级提示。</div>
       ) : null}
     </div>
   )

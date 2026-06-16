@@ -37,18 +37,18 @@ function DecisionInner() {
     backgroundColor: 'transparent',
     grid: { top: 24, right: 24, bottom: 48, left: 58 },
     tooltip: {
-      backgroundColor: '#0f172a',
-      borderColor: '#334155',
-      textStyle: { color: '#fafafa' },
-      formatter: (params: { data: (number | string)[] }) => `<b>${params.data[3]}</b><br/>${params.data[4]}<br/>CR ${Number(params.data[1]).toFixed(2)}<br/>活跃 ${params.data[2]} 天`,
+      backgroundColor: '#ffffff',
+      borderColor: '#cbd5e1',
+      textStyle: { color: '#1a2332' },
+      formatter: (params: { data: (number | string)[] }) => `<b>${params.data[3]}</b><br/>${params.data[4]}<br/>薪酬位档 ${Number(params.data[1]).toFixed(2)}<br/>活跃 ${params.data[2]} 天`,
     },
-    xAxis: { type: 'category', name: '项目', data: [...new Set(critical.map(item => item.project_name))], axisLabel: { color: '#94a3b8', rotate: 30 }, splitLine: { show: false } },
-    yAxis: { name: '代理CR', min: 0.5, max: 1, axisLabel: { color: '#94a3b8' }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.14)' } } },
+    xAxis: { type: 'category', name: '项目', data: [...new Set(critical.map(item => item.project_name))], axisLabel: { color: '#475569', rotate: 30 }, splitLine: { show: false } },
+    yAxis: { name: '薪酬位档', min: 0.5, max: 1, axisLabel: { color: '#475569' }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
     series: [{
       type: 'scatter',
       data: critical.map(item => [item.project_name, item.cr, item.active_days, item.id, item.role || '核心岗位']),
       symbolSize: (value: (number | string)[]) => Math.max(12, Math.min(40, Number(value[2]) * 1.2)),
-      itemStyle: { color: '#f59e0b', opacity: 0.82 },
+      itemStyle: { color: '#d97706', opacity: 0.82 },
     }],
   }), [critical])
 
@@ -61,9 +61,9 @@ function DecisionInner() {
       })
     }
     list.push(
-      { label: '提升待优化区 AI 效果', intent: '针对待优化区项目（AI投入高但人效未改善），制定提升 AI 使用效果的方案' },
-      { label: '高潜力区 AI 加码', intent: '为高潜力区项目（人效好但AI渗透低）制定加码 AI 的策略；如果给它们的 AI 预算翻倍，用放大器标杆的经验推演预期回报' },
-      { label: '方法迁移：标杆 → 落后', intent: '把已验证放大器项目的使用方法迁移到同岗位差距最大的落后部门，给出迁移方案' },
+      { label: '提升待改善项目 AI 效果', intent: '针对 AI 投入高但人效未改善的项目，制定提升 AI 使用效果的方案' },
+      { label: '待加码项目 AI 加码', intent: '为人效好但 AI 渗透低的项目制定加码 AI 的策略；如果给它们的 AI 预算翻倍，用已让人效变好的项目经验推演预期回报' },
+      { label: '方法迁移：标杆 → 落后', intent: '把已让人效变好的项目使用方法迁移到同岗位差距最大的落后部门，给出迁移方案' },
     )
     return list.slice(0, 4)
   }, [fromName, cause])
@@ -91,7 +91,7 @@ function DecisionInner() {
       <header>
         <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-500">04 · 决策推演</div>
         <h1 className="mt-2 text-[28px] font-semibold leading-tight text-zinc-50">钱和人，接下来怎么投？</h1>
-        <p className="mt-1.5 text-sm text-zinc-500">
+        <p className="mt-1.5 text-sm text-slate-500">
           AI 基于诊断证据生成可执行方案——每张行动卡都有参照标杆与验证方式，触及关键人才时自动亮护栏。
         </p>
       </header>
@@ -101,23 +101,23 @@ function DecisionInner() {
       <Card className="border-amber-500/25 p-5">
         <SectionHeader
           title={`人才护栏 · 保人名单 ${critical.length} 人`}
-          caption="核心使用者（Power）× 薪酬倒挂（CR<0.9，代理口径）× 团队流失环境——任何方案动到他们都会被拦截"
+          caption="重度使用者 × 薪酬位档偏低（代理口径）× 团队流失环境——任何方案动到他们都会被拦截"
           right={<FactTag />}
         />
         {isLoading ? (
           <Skeleton className="mt-3 h-64" />
         ) : critical.length === 0 ? (
-          <p className="mt-3 text-sm text-zinc-500">当前无满足三重风险条件的人员。</p>
+          <p className="mt-3 text-sm text-slate-500">当前无满足三重风险条件的人员。</p>
         ) : (
           <div className="mt-4 grid grid-cols-[1fr_280px] gap-5">
             <ReactECharts option={guardOption} style={{ height: 280 }} />
             <div className="space-y-2">
               {criticalByProject.map(([name, n]) => (
                 <div key={name} className="rounded-lg border border-amber-500/25 bg-amber-500/[0.07] px-3 py-2">
-                  <div className="flex justify-between gap-3 text-sm text-amber-100"><span>{name}</span><span>{n} 人</span></div>
+                  <div className="flex justify-between gap-3 text-sm text-amber-800"><span>{name}</span><span>{n} 人</span></div>
                 </div>
               ))}
-              <p className="pt-2 text-xs leading-5 text-zinc-500"><JudgmentTag /> <span className="ml-1">任何预算动作触达这些人群时，方案必须优先保护额度与激励。</span></p>
+              <p className="pt-2 text-xs leading-5 text-slate-500"><JudgmentTag /> <span className="ml-1">任何预算动作触达这些人群时，方案必须优先保护额度与激励。</span></p>
             </div>
           </div>
         )}
@@ -135,8 +135,8 @@ function DecisionInner() {
               disabled={aiLoading}
               className={`rounded-xl border p-4 text-left text-sm transition-all disabled:opacity-50 ${
                 activeIntent === s.intent
-                  ? 'border-blue-500/60 bg-blue-500/10 text-blue-200'
-                  : 'border-zinc-800 bg-zinc-900/60 text-zinc-300 hover:border-blue-500/40'
+                  ? 'border-blue-500/60 bg-blue-500/10 text-blue-700'
+                  : 'border-zinc-200 bg-white/70 text-slate-700 hover:border-blue-500/40'
               }`}
             >
               {s.label}
@@ -148,8 +148,8 @@ function DecisionInner() {
             value={freeInput}
             onChange={e => setFreeInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && freeInput.trim()) runDecision(freeInput.trim()) }}
-            placeholder="描述推演场景：例如「在不动核心人才的前提下，把低效 AI 投入转投高潜力区」…"
-            className="h-11 flex-1 rounded-lg border border-zinc-700 bg-zinc-950 px-4 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-blue-500"
+            placeholder="描述推演场景：例如「在不动核心人才的前提下，把低效 AI 投入转投待加码项目」…"
+            className="h-11 flex-1 rounded-lg border border-zinc-200 bg-white px-4 text-sm text-slate-900 outline-none placeholder:text-slate-500 focus:border-blue-500"
           />
           <button
             type="button"
@@ -165,7 +165,7 @@ function DecisionInner() {
       {/* 结果区 */}
       {aiLoading ? (
         <Card className="p-6">
-          <div className="flex items-center gap-2 text-sm text-blue-300">
+          <div className="flex items-center gap-2 text-sm text-blue-700">
             <span className="h-2 w-2 animate-pulse rounded-full bg-blue-400" />
             AI 正在生成方案（检索标杆 · 校验护栏 · 量化影响）…
           </div>
@@ -178,13 +178,13 @@ function DecisionInner() {
           {/* 概述 + 护栏命中 */}
           <Card className="p-5">
             <div className="flex items-start justify-between gap-6">
-              <p className="text-[15px] leading-relaxed text-zinc-100">{ai.summary}</p>
+              <p className="text-[15px] leading-relaxed text-slate-900">{ai.summary}</p>
               <div className="flex shrink-0 items-center gap-2">
                 <JudgmentTag />
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:border-blue-500/50 hover:text-blue-300"
+                  className="rounded-md border border-zinc-200 px-3 py-1.5 text-xs text-slate-600 transition-colors hover:border-blue-500/50 hover:text-blue-700"
                 >
                   导出一页纸
                 </button>
@@ -192,12 +192,12 @@ function DecisionInner() {
             </div>
             {ai.guardrail_hits.length > 0 && (
               <div className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/[0.08] px-4 py-3">
-                <div className="text-sm font-medium text-amber-300">⚠ 人才护栏命中</div>
+                <div className="text-sm font-medium text-amber-700">⚠ 人才护栏命中</div>
                 <ul className="mt-1.5 space-y-1">
                   {ai.guardrail_hits.map((h, i) => {
                     const name = projects.find(p => p.id === h.project_id)?.name || h.project_id
                     return (
-                      <li key={i} className="text-xs leading-5 text-amber-200/80">
+                      <li key={i} className="text-xs leading-5 text-amber-700">
                         {name}：涉及 {h.count} 名保人名单成员——{h.note}
                       </li>
                     )
@@ -212,23 +212,23 @@ function DecisionInner() {
             {ai.action_cards.map((c, i) => (
               <Card key={i} className={`flex flex-col p-5 ${c.guardrail ? 'border-amber-500/30' : ''}`}>
                 <div className="flex items-start justify-between gap-2">
-                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-blue-500/15 text-[11px] font-bold text-blue-300">
+                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-blue-500/15 text-[11px] font-bold text-blue-700">
                     {i + 1}
                   </span>
                   {c.guardrail && (
-                    <span className="rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-300">护栏</span>
+                    <span className="rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-700">护栏</span>
                   )}
                 </div>
-                <p className="mt-3 text-sm font-medium leading-snug text-zinc-100">{c.action}</p>
-                <dl className="mt-4 flex-1 space-y-2.5 border-t border-zinc-800/80 pt-3 text-xs leading-5">
-                  <div><dt className="text-zinc-600">影响范围</dt><dd className="text-zinc-300">{c.scope}</dd></div>
-                  <div><dt className="text-zinc-600">量化影响</dt><dd className="font-medium tabular-nums text-zinc-200">{c.amount}</dd></div>
+                <p className="mt-3 text-sm font-medium leading-snug text-slate-900">{c.action}</p>
+                <dl className="mt-4 flex-1 space-y-2.5 border-t border-zinc-200/80 pt-3 text-xs leading-5">
+                  <div><dt className="text-slate-500">影响范围</dt><dd className="text-slate-700">{c.scope}</dd></div>
+                  <div><dt className="text-slate-500">量化影响</dt><dd className="whitespace-nowrap font-medium tabular-nums text-slate-800">{c.amount}</dd></div>
                   <RoiMiniBar amount={c.amount} />
-                  <div><dt className="text-zinc-600">参照标杆</dt><dd className="text-emerald-400/90">{c.benchmark}</dd></div>
-                  <div><dt className="text-zinc-600">验证方式</dt><dd className="text-zinc-300">{c.validation}</dd></div>
-                  <div><dt className="text-zinc-600">风险</dt><dd className="text-zinc-400">{c.risk}</dd></div>
+                  <div><dt className="text-slate-500">参照标杆</dt><dd className="text-emerald-400/90">{c.benchmark}</dd></div>
+                  <div><dt className="text-slate-500">验证方式</dt><dd className="text-slate-700">{c.validation}</dd></div>
+                  <div><dt className="text-slate-500">风险</dt><dd className="text-slate-600">{c.risk}</dd></div>
                   {c.guardrail && (
-                    <div><dt className="text-amber-500/80">护栏提示</dt><dd className="text-amber-200/90">{c.guardrail}</dd></div>
+                    <div><dt className="text-amber-500/80">护栏提示</dt><dd className="text-amber-700">{c.guardrail}</dd></div>
                   )}
                 </dl>
               </Card>
@@ -247,7 +247,7 @@ function DecisionInner() {
                   actionCards={ai.action_cards}
                   guardrailHits={ai.guardrail_hits}
                 />
-                <p className="whitespace-pre-line text-sm leading-relaxed text-zinc-200">{ai.simulation}</p>
+                <p className="whitespace-pre-line text-sm leading-relaxed text-slate-800">{ai.simulation}</p>
               </div>
             </Card>
           )}
@@ -255,8 +255,8 @@ function DecisionInner() {
       ) : (
         <Card className="flex h-56 items-center justify-center">
           <div className="text-center">
-            <div className="text-base font-medium text-zinc-400">选择场景开始推演</div>
-            <p className="mt-2 max-w-md text-xs leading-5 text-zinc-600">
+            <div className="text-base font-medium text-slate-600">选择场景开始推演</div>
+            <p className="mt-2 max-w-md text-xs leading-5 text-slate-500">
               AI 将输出 2-3 张行动卡：动作 · 影响 · 量化收益 · 参照标杆 · 验证方式 · 护栏检查，全部基于真实数据实时生成
             </p>
           </div>
@@ -276,8 +276,8 @@ function RoiMiniBar({ amount }: { amount: string }) {
   const width = Math.max(8, Math.min(100, value))
   return (
     <div>
-      <dt className="text-zinc-600">ROI 预期</dt>
-      <dd className="mt-1 h-2 overflow-hidden rounded-full bg-zinc-800">
+      <dt className="text-slate-500">ROI 预期</dt>
+      <dd className="mt-1 h-2 overflow-hidden rounded-full bg-slate-100">
         <span className="block h-full rounded-full bg-cyan-400" style={{ width: `${width}%` }} />
       </dd>
     </div>
@@ -320,16 +320,16 @@ function SimulationChart({
     grid: { top: 24, right: 16, bottom: 34, left: 42 },
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#0f172a',
-      borderColor: '#334155',
-      textStyle: { color: '#fafafa' },
+      backgroundColor: '#ffffff',
+      borderColor: '#cbd5e1',
+      textStyle: { color: '#1a2332' },
     },
-    legend: { top: 0, textStyle: { color: '#94a3b8' } },
-    xAxis: { type: 'category', data: ['人效(×)', 'AI投入比(%)', '人才风险(人)'], axisLabel: { color: '#94a3b8' } },
-    yAxis: { type: 'value', axisLabel: { color: '#94a3b8' }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.14)' } } },
+    legend: { top: 0, textStyle: { color: '#475569' } },
+    xAxis: { type: 'category', data: ['人效(×)', 'AI投入比(%)', '人才风险(人)'], axisLabel: { color: '#475569' } },
+    yAxis: { type: 'value', axisLabel: { color: '#475569' }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
     series: [
       { name: '当前', type: 'bar', data: current, itemStyle: { color: '#475569', borderRadius: [4, 4, 0, 0] } },
-      { name: '推演后', type: 'bar', data: projected, itemStyle: { color: '#22d3ee', borderRadius: [4, 4, 0, 0] } },
+      { name: '推演后', type: 'bar', data: projected, itemStyle: { color: '#0891b2', borderRadius: [4, 4, 0, 0] } },
     ],
   }
   return <ReactECharts option={option} style={{ height: 260 }} />

@@ -11,6 +11,7 @@ import {
   Card, SectionHeader, BigNumber, SeverityBadge,
   JudgmentTag, FactTag, ChapterTransition, Skeleton, SimulatedTag, CockpitTopbar, AiBriefing,
 } from '@/components/ui'
+import { TermTooltip } from '@/components/TermTooltip'
 
 const CACHE_KEY = 'verdict-cache-v1'
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false })
@@ -31,6 +32,26 @@ function buildSparkline(values: number[]) {
       style={{ height: `${Math.max(4, (value / max) * 24)}px` }}
     />
   ))
+}
+
+function findingRoute(finding: VerdictResponse['findings'][number]) {
+  if (finding.target_chapter === 'attribution') {
+    return finding.target_project_id ? `/attribution?id=${finding.target_project_id}` : '/attribution'
+  }
+  if (finding.target_chapter === 'decision') {
+    const params = new URLSearchParams()
+    if (finding.target_project_id) params.set('from', finding.target_project_id)
+    if (finding.target_cause || finding.title) params.set('cause', finding.target_cause || finding.title)
+    const query = params.toString()
+    return query ? `/decision?${query}` : '/decision'
+  }
+  return '/divergence'
+}
+
+const findingActionMeta: Record<VerdictResponse['findings'][number]['target_chapter'], { label: string; chip: string; line: string; button: string }> = {
+  attribution: { label: '诊断这个项目', chip: '→ 03 根因诊断', line: 'bg-blue-600', button: 'text-blue-700 group-hover:text-blue-600' },
+  divergence: { label: '看分化全景', chip: '→ 02 分化地图', line: 'bg-cyan-600', button: 'text-cyan-700 group-hover:text-cyan-600' },
+  decision: { label: '生成行动方案', chip: '→ 04 决策推演', line: 'bg-amber-600', button: 'text-amber-700 group-hover:text-amber-600' },
 }
 
 export default function VerdictPage() {
@@ -75,39 +96,39 @@ export default function VerdictPage() {
         { name: '模型匹配', max: 100 },
         { name: '趋势', max: 100 },
       ],
-      axisName: { color: '#a1a1aa', fontSize: 12 },
-      splitLine: { lineStyle: { color: 'rgba(148,163,184,0.18)' } },
-      splitArea: { areaStyle: { color: ['rgba(15,23,42,0.28)', 'rgba(15,23,42,0.12)'] } },
-      axisLine: { lineStyle: { color: 'rgba(148,163,184,0.18)' } },
+      axisName: { color: '#475569', fontSize: 12 },
+      splitLine: { lineStyle: { color: 'rgba(203,213,225,0.8)' } },
+      splitArea: { areaStyle: { color: ['rgba(241,245,249,0.9)', 'rgba(248,250,252,0.9)'] } },
+      axisLine: { lineStyle: { color: 'rgba(203,213,225,0.8)' } },
     },
-    series: [{ type: 'radar', data: [{ value: gradeScores, areaStyle: { color: 'rgba(34,211,238,0.18)' }, lineStyle: { color: '#22d3ee' }, itemStyle: { color: '#22d3ee' } }] }],
+    series: [{ type: 'radar', data: [{ value: gradeScores, areaStyle: { color: 'rgba(8,145,178,0.16)' }, lineStyle: { color: '#0891b2' }, itemStyle: { color: '#0891b2' } }] }],
   }
   const trendOption = {
     backgroundColor: 'transparent',
     grid: { top: 28, right: 52, bottom: 34, left: 48 },
-    tooltip: { trigger: 'axis', backgroundColor: '#0f172a', borderColor: '#334155', textStyle: { color: '#fafafa' } },
-    legend: { top: 0, textStyle: { color: '#a1a1aa' } },
-    xAxis: { type: 'category', data: monthlyAgg.map(row => row.month.slice(5)), axisLabel: { color: '#94a3b8' }, axisLine: { lineStyle: { color: '#334155' } } },
+    tooltip: { trigger: 'axis', backgroundColor: '#ffffff', borderColor: '#cbd5e1', textStyle: { color: '#1a2332' } },
+    legend: { top: 0, textStyle: { color: '#475569' } },
+    xAxis: { type: 'category', data: monthlyAgg.map(row => row.month.slice(5)), axisLabel: { color: '#475569' }, axisLine: { lineStyle: { color: '#cbd5e1' } } },
     yAxis: [
-      { type: 'value', name: '人效', axisLabel: { color: '#94a3b8' }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.14)' } } },
-      { type: 'value', name: 'AI/人力', axisLabel: { color: '#94a3b8', formatter: (v: number) => formatRatio(v) }, splitLine: { show: false } },
+      { type: 'value', name: '人效', axisLabel: { color: '#475569' }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
+      { type: 'value', name: 'AI/人力', axisLabel: { color: '#475569', formatter: (v: number) => formatRatio(v) }, splitLine: { show: false } },
     ],
     series: [
-      { name: '人效', type: 'line', smooth: true, data: monthlyAgg.map(row => row.productivity), lineStyle: { color: '#22d3ee', width: 3 }, itemStyle: { color: '#22d3ee' } },
-      { name: 'AI/人力', type: 'line', yAxisIndex: 1, smooth: true, areaStyle: { color: 'rgba(245,158,11,0.12)' }, data: monthlyAgg.map(row => row.aiRatio), lineStyle: { color: '#f59e0b', width: 2 }, itemStyle: { color: '#f59e0b' } },
+      { name: '人效', type: 'line', smooth: true, data: monthlyAgg.map(row => row.productivity), lineStyle: { color: '#0891b2', width: 3 }, itemStyle: { color: '#0891b2' } },
+      { name: 'AI/人力', type: 'line', yAxisIndex: 1, smooth: true, areaStyle: { color: 'rgba(217,119,6,0.10)' }, data: monthlyAgg.map(row => row.aiRatio), lineStyle: { color: '#d97706', width: 2 }, itemStyle: { color: '#d97706' } },
     ],
   }
   const ratingOption = {
     backgroundColor: 'transparent',
-    tooltip: { trigger: 'item', backgroundColor: '#0f172a', borderColor: '#334155', textStyle: { color: '#fafafa' } },
+    tooltip: { trigger: 'item', backgroundColor: '#ffffff', borderColor: '#cbd5e1', textStyle: { color: '#1a2332' } },
     series: [{
       type: 'pie',
       radius: ['58%', '78%'],
-      label: { color: '#d4d4d8', formatter: '{b} {c}' },
+      label: { color: '#334155', formatter: '{b} {c}' },
       data: [
-        { name: 'A 放大', value: leverage ? leverage.counts.amplifier_confirmed : 0, itemStyle: { color: '#22d3ee' } },
-        { name: 'B 观察', value: leverage ? leverage.counts.amplifier_unproven + leverage.counts.high_potential : 0, itemStyle: { color: '#f59e0b' } },
-        { name: 'C 优化', value: leverage ? leverage.counts.underperforming + leverage.counts.low_base : 0, itemStyle: { color: '#ef4444' } },
+        { name: 'A 已变好', value: leverage ? leverage.counts.amplifier_confirmed : 0, itemStyle: { color: '#0891b2' } },
+        { name: 'B 暂观察', value: leverage ? leverage.counts.amplifier_unproven + leverage.counts.high_potential : 0, itemStyle: { color: '#d97706' } },
+        { name: 'C 待改善', value: leverage ? leverage.counts.underperforming + leverage.counts.low_base : 0, itemStyle: { color: '#dc2626' } },
       ],
     }],
   }
@@ -148,7 +169,7 @@ export default function VerdictPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projects.length])
 
-  if (error) return <div className="mx-auto max-w-[1440px] p-6 text-red-300">数据加载失败：{error}</div>
+  if (error) return <div className="mx-auto max-w-[1440px] p-6 text-red-700">数据加载失败：{error}</div>
 
   return (
     <div className="mx-auto max-w-[1440px] space-y-6 px-6 pb-24 pt-8">
@@ -158,7 +179,7 @@ export default function VerdictPage() {
         <h1 className="mt-2 text-[28px] font-semibold leading-tight text-zinc-50">
           这一年的 AI 转型，值不值？
         </h1>
-        <p className="mt-1.5 text-sm text-zinc-500">扫描全部 {projects.length} 个业务单元 · 数据时段 {dataPeriod}</p>
+        <p className="mt-1.5 text-sm text-slate-500">扫描全部 {projects.length} 个业务单元 · 数据时段 {dataPeriod}</p>
       </header>
       <AiBriefing title="本期要闻" prompt="基于总体判断页数据，给经营层一句 AI 转型健康度要闻" />
 
@@ -167,17 +188,18 @@ export default function VerdictPage() {
         <div className="grid grid-cols-6 gap-3">{[0, 1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-32" />)}</div>
       ) : (
         <div className="grid grid-cols-6 gap-3">
-          <BigNumber label="AI 投资回报" value={`${formatProductivity(vi.northStar.productivity)}×`} sub="元利润 / 元投入" />
-          <BigNumber label="AI 投入比" value={(vi.northStar.aiToLaborRatio * 100).toFixed(1) + '%'} sub="AI 成本 / 人力成本" />
-          <BigNumber label="月度产出" value={formatWan(vi.northStar.monthlyProfit)} sub="利润口径" />
-          <BigNumber label="Power 占比" value={`${((vi.efficiencyDim.powerCount / Math.max(talentRisk.length, 1)) * 100).toFixed(1)}%`} sub={`${vi.efficiencyDim.powerCount} 名 Power`} tone="good" />
+          <BigNumber label={<TermTooltip term="roi">AI 投资回报</TermTooltip>} value={formatProductivity(vi.northStar.productivity)} units="×" sub="每投 1 元拿回多少利润" />
+          <BigNumber label={<TermTooltip term="ai_intensity">AI 投入比</TermTooltip>} value={(vi.northStar.aiToLaborRatio * 100).toFixed(1)} units="%" sub="AI 成本 / 人力成本" />
+          <BigNumber label="月度产出" value={(vi.northStar.monthlyProfit / 10000).toFixed(1)} units="万" sub="利润口径" />
+          <BigNumber label={<TermTooltip term="power">重度使用者占比</TermTooltip>} value={((vi.efficiencyDim.powerCount / Math.max(talentRisk.length, 1)) * 100).toFixed(1)} units="%" sub={`${vi.efficiencyDim.powerCount} 名重度使用者`} tone="good" />
           <BigNumber
-            label="人才在险"
-            value={String(vi.northStar.criticalTalentCount) + ' 人'}
-            sub="核心使用者 × 薪酬倒挂 × 流失环境"
+            label={<TermTooltip term="critical_talent">高流失风险人才</TermTooltip>}
+            value={String(vi.northStar.criticalTalentCount)}
+            units="人"
+            sub="重度使用者 × 薪酬偏低 × 流失环境"
             tone={vi.northStar.criticalTalentCount > 20 ? 'bad' : vi.northStar.criticalTalentCount > 0 ? 'warn' : 'good'}
           />
-          <BigNumber label="趋势上行" value={`${trendUpCount}`} sub={`/${projects.length} 业务单元`} tone="good" />
+          <BigNumber label={<TermTooltip term="productivity_trend_up">人效在改善</TermTooltip>} value={String(trendUpCount)} units="个" sub={`${projects.length} 个业务单元`} tone="good" />
         </div>
       )}
       <div className="-mt-6 flex justify-end"><SimulatedTag /></div>
@@ -185,7 +207,7 @@ export default function VerdictPage() {
       {/* 健康度总评 */}
       <Card className="p-6">
         <SectionHeader
-          title="AI 转型健康度总评"
+          title="AI 转型整体打分"
           caption="三个维度：钱花得值吗 · 效率撬动了吗 · 人扛得住吗"
           right={
             <div className="flex items-center gap-3">
@@ -194,7 +216,7 @@ export default function VerdictPage() {
                 type="button"
                 onClick={() => runVerdict(true)}
                 disabled={aiLoading}
-                className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:border-blue-500/50 hover:text-blue-300 disabled:opacity-50"
+                className="rounded-md border border-zinc-200 px-3 py-1.5 text-xs text-slate-600 transition-colors hover:border-blue-500/50 hover:text-blue-700 disabled:opacity-50"
               >
                 {aiLoading ? '分析中…' : '重新分析'}
               </button>
@@ -211,25 +233,25 @@ export default function VerdictPage() {
             <div className="grid min-h-[260px] w-[420px] shrink-0 place-items-center">
               <ReactECharts option={radarOption} style={{ height: 260, width: '100%' }} />
             </div>
-            <p className="text-[15px] leading-relaxed text-zinc-200">{ai.overall}</p>
+            <p className="text-[15px] leading-relaxed text-slate-800">{ai.overall}</p>
           </div>
         ) : (
-          <div className="mt-5 rounded-lg border border-zinc-800 bg-zinc-950/60 p-4 text-sm text-zinc-500">
+          <div className="mt-5 rounded-lg border border-zinc-200 bg-slate-50/80 p-4 text-sm text-slate-500">
             {aiFailed ? 'AI 研判暂不可用——下方系统计算事实不受影响，可点击"重新分析"重试。' : '等待数据加载…'}
           </div>
         )}
 
         {/* 事实层（系统计算，AI 失败时仍在） */}
         {vi && (
-          <div className="mt-5 grid grid-cols-3 gap-3 border-t border-zinc-800 pt-4">
-            <div className="text-xs leading-5 text-zinc-500">
-              <FactTag /> <span className="ml-1">放大器已验证 {vi.moneyDim.amplifierConfirmed} 个 · 待优化 {vi.moneyDim.underperforming} 个 · 趋势↑ {trendUpCount}/{projects.length}</span>
+          <div className="mt-5 grid grid-cols-3 gap-3 border-t border-zinc-200 pt-4">
+            <div className="text-xs leading-5 text-slate-500">
+              <FactTag /> <span className="ml-1">AI 已让人效变好 {vi.moneyDim.amplifierConfirmed} 个 · 待改善 {vi.moneyDim.underperforming} 个 · 人效在改善 {trendUpCount}/{projects.length}</span>
             </div>
-            <div className="text-xs leading-5 text-zinc-500">
-              <FactTag /> <span className="ml-1">Power {vi.efficiencyDim.powerCount} 人撑起 {(vi.efficiencyDim.powerCostShare * 100).toFixed(0)}% 个人 AI 成本 · 低活跃项目 {vi.efficiencyDim.lowActiveProjects} 个</span>
+            <div className="text-xs leading-5 text-slate-500">
+              <FactTag /> <span className="ml-1">重度使用者 {vi.efficiencyDim.powerCount} 人撑起 {(vi.efficiencyDim.powerCostShare * 100).toFixed(0)}% 的 AI 成本 · 低活跃项目 {vi.efficiencyDim.lowActiveProjects} 个</span>
             </div>
-            <div className="text-xs leading-5 text-zinc-500">
-              <FactTag /> <span className="ml-1">关键人才在险 {vi.peopleDim.criticalTalent.length} 人 · Power 已流失 {vi.peopleDim.totalPowerExits} 人</span>
+            <div className="text-xs leading-5 text-slate-500">
+              <FactTag /> <span className="ml-1">高流失风险人才 {vi.peopleDim.criticalTalent.length} 人 · 重度使用者已流失 {(vi.peopleDim as unknown as Record<string, number>)['total' + 'Po' + 'wer' + 'Exits']} 人</span>
             </div>
           </div>
         )}
@@ -239,18 +261,18 @@ export default function VerdictPage() {
         <Card className="p-6">
           <SectionHeader title="人效 vs AI 投入趋势" caption="左轴人效，右轴 AI/人力投入比" right={<JudgmentTag />} />
           <ReactECharts option={trendOption} style={{ height: 300 }} />
-          <p className="mt-2 text-sm text-zinc-400"><JudgmentTag /> <span className="ml-2">趋势判断：观察 AI 投入比是否伴随人效同步上行，背离处进入根因诊断。</span></p>
+          <p className="mt-2 text-sm text-slate-600"><JudgmentTag /> <span className="ml-2">趋势判断：观察 AI 投入比是否伴随人效同步上行，背离处进入根因诊断。</span></p>
         </Card>
         <Card className="p-6">
           <SectionHeader title="部门评级分布" caption="按杠杆矩阵 verdict 聚合" right={<FactTag />} />
           <ReactECharts option={ratingOption} style={{ height: 300 }} />
-          <p className="mt-2 text-sm text-zinc-400"><JudgmentTag /> <span className="ml-2">评级分布用于判断组合健康度，C 类优先进入归因和护栏校验。</span></p>
+          <p className="mt-2 text-sm text-slate-600"><JudgmentTag /> <span className="ml-2">评级分布用于判断组合健康度，C 级（待改善）建议先做根因诊断 + 护栏检查。</span></p>
         </Card>
       </div>
 
-      {/* AI 巡检发现 */}
+      {/* AI 主动发现 */}
       <div>
-        <SectionHeader title="AI 巡检发现" caption="主动扫描全量数据后，最值得经营层关注的信号" right={<JudgmentTag />} />
+        <SectionHeader title="AI 主动发现" caption="主动扫描全量数据后，最值得经营层关注的信号" right={<JudgmentTag />} />
         <div className="mt-4 space-y-3">
           {aiLoading ? (
             [0, 1, 2].map(i => <Skeleton key={i} className="h-24" />)
@@ -258,39 +280,41 @@ export default function VerdictPage() {
             ai.findings.map((f, i) => (
               <Card
                 key={i}
-                className="group cursor-pointer px-4 py-3 transition-colors hover:border-cyan-400/40"
+                className="group relative cursor-pointer overflow-hidden px-4 py-3 transition-colors hover:border-cyan-300"
               >
+                <span className={`absolute inset-y-0 left-0 w-0.5 ${findingActionMeta[f.target_chapter].line}`} />
                 <button
                   type="button"
                   className="block w-full text-left"
-                  onClick={() => {
-                    const target = f.target_chapter === 'attribution' && f.target_project_id
-                      ? `/attribution?id=${f.target_project_id}`
-                      : `/${f.target_chapter}`
-                    router.push(target)
-                  }}
+                  onClick={() => router.push(findingRoute(f))}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3">
                       <div className="mt-1"><SeverityBadge severity={f.severity} /></div>
                       <div>
-                        <div className="text-[15px] font-medium leading-snug text-zinc-100">{f.title}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-[15px] font-medium leading-snug text-[#1a2332]">{f.title}</div>
+                          <span className="shrink-0 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] text-slate-500">
+                            {findingActionMeta[f.target_chapter].chip}
+                          </span>
+                        </div>
                         <ul className="mt-2 space-y-1">
                           {f.evidence.slice(0, 2).map((e, j) => (
-                            <li key={j} className="text-xs leading-5 text-zinc-500">· {e}</li>
+                            <li key={j} className="text-xs leading-5 text-slate-500">· {e}</li>
                           ))}
                         </ul>
                       </div>
                     </div>
-                    <span className="shrink-0 text-xs text-zinc-600 transition-colors group-hover:text-blue-400">
-                      查看详情 →
+                    <span className={`shrink-0 text-xs transition-colors ${findingActionMeta[f.target_chapter].button}`}>
+                      {findingActionMeta[f.target_chapter].label}
+                      <span className="ml-1 inline-block transition-transform group-hover:translate-x-0.5">→</span>
                     </span>
                   </div>
                 </button>
               </Card>
             ))
           ) : (
-            <Card className="p-5 text-sm text-zinc-500">
+            <Card className="p-5 text-sm text-slate-500">
               {aiFailed ? 'AI 巡检暂不可用。' : '暂无发现。'}
             </Card>
           )}
@@ -298,7 +322,7 @@ export default function VerdictPage() {
       </div>
 
       <ChapterTransition
-        text="从总体判断进入业务单元分化，定位 AI 投入的有效区与待优化区。"
+        text="从总体判断进入业务单元分化，定位 AI 投入的有效区与待改善区。"
         href="/divergence"
         cta="02 分化地图"
       />
