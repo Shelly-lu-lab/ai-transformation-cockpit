@@ -154,7 +154,15 @@ export function extractJson(text: string): unknown {
   // 修复2：尾逗号
   repaired = repaired.replace(/,\s*([}\]])/g, '$1')
   try { return JSON.parse(repaired) } catch { /* 修复3 */ }
-  // 修复3：中文引号被当作 JSON 引号使用的罕见情况——仅当仍失败时把全角引号转义
-  repaired = repaired.replace(/(?<=[一-龥，。；：])"(?=[一-龥])/g, '\\"')
+  // 修复3：AI 在字符串内部裸用 ASCII " 引号（破坏 JSON 结构）
+  // 启发式：" 不在合法 JSON 边界（前: , : { [，后: , } ] : 空格）→ 视为内部引号转义
+  // 第一遍：CJK + 标点 + 数字 + 字母 之间的 " 都转义
+  repaired = repaired.replace(
+    /(?<=[一-龥，。；：、！？％+\-\d\w%）)])"(?=[一-龥，。；：、！？％+\-\d\w%（(])/g,
+    '\\"'
+  )
+  try { return JSON.parse(repaired) } catch { /* 修复4 */ }
+  // 修复4：兜底——找出所有 " 后面紧接非 JSON 边界字符的位置全部转义
+  repaired = repaired.replace(/(?<![\\,:\[\{\s])"(?![,\}\]\s:])/g, '\\"')
   try { return JSON.parse(repaired) } catch { return null }
 }
