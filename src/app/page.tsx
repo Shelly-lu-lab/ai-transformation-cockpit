@@ -59,7 +59,7 @@ export default function Home() {
         <div className="mx-auto mb-6 grid h-12 w-12 place-items-center rounded-lg border border-blue-500/40 bg-blue-500/10 text-sm font-bold text-blue-700">
           AI
         </div>
-        <h1 className="text-5xl font-semibold tracking-tight text-zinc-50">AI 转型驾驶舱</h1>
+        <h1 className="text-5xl font-semibold tracking-tight text-slate-900">AI 转型驾驶舱</h1>
         <p className="mt-4 text-lg text-slate-600">用 AI 算清 AI 转型这笔账：投入在哪里撬动了人效，在哪里需要调整</p>
 
         <div className="mt-10 rounded-lg border border-dashed border-zinc-200 bg-white/70 p-8">

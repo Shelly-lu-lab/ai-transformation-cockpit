@@ -245,7 +245,7 @@ export default function SignalPage() {
     <div className="w-full space-y-4 px-8 pb-44 pt-5">
       <header className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-zinc-50">AI 价值信号</h1>
+          <h1 className="text-2xl font-semibold text-slate-900">AI 价值信号</h1>
           <p className="mt-1 text-sm text-slate-600">按 AI 投入强度、人效、岗位和人才护栏解释投入信号；AI 投入强度 = AI 成本 / 人力成本</p>
         </div>
         {selectedProject ? <div className="text-xs text-slate-500">当前：{selectedProject.name}</div> : null}
@@ -278,7 +278,7 @@ export default function SignalPage() {
             <>
 	              <div className="flex items-center justify-between rounded-lg border border-zinc-200/70 bg-white px-4 py-3">
                 <div>
-                  <h2 className="text-xl font-semibold text-zinc-50">{selectedProject.name}</h2>
+                  <h2 className="text-xl font-semibold text-slate-900">{selectedProject.name}</h2>
                   <p className="text-sm text-slate-600">{selectedProject.type} · {selectedProject.headcount} 人</p>
                 </div>
                 <span
@@ -335,7 +335,7 @@ function DiagnosisCard({ diagnosis, project }: { diagnosis: ReturnType<typeof bu
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-xs font-medium uppercase tracking-[0.16em] opacity-70">诊断结论</div>
-          <h3 className="mt-2 text-base font-semibold text-zinc-50">{diagnosis.title}</h3>
+          <h3 className="mt-2 text-base font-semibold text-slate-900">{diagnosis.title}</h3>
           <p className="mt-2 text-sm leading-6 text-slate-700">{diagnosis.summary}</p>
         </div>
         <a

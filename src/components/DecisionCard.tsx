@@ -22,7 +22,7 @@ export function DecisionCard({
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-xs font-medium uppercase tracking-[0.16em] text-blue-700">经营方案</div>
-          <h3 className="mt-2 text-xl font-semibold text-zinc-50">{title}</h3>
+          <h3 className="mt-2 text-xl font-semibold text-slate-900">{title}</h3>
           <p className="mt-1 text-sm text-slate-600">基于当前项目组合、人才护栏和 AI 投入结构生成</p>
         </div>
         <span className="rounded-full border border-green-500/30 bg-green-500/10 px-3 py-1 text-xs text-green-200">

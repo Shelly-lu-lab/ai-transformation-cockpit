@@ -73,8 +73,44 @@ function attributionContext(projectId: string): string | null {
   const { projects, trend, talents, matrix } = getData()
   const ev = buildAttributionEvidence(projectId, projects, trend, talents, matrix)
   if (!ev) return null
+  const chartText = (s: typeof ev.steps[number]) => {
+    if (!s.chart) return '图表：数据维度不足'
+    if (s.chart.type === 'model_compare') {
+      const currentTop = [...s.chart.current].sort((a, b) => b.share - a.share)[0]
+      const benchmarkTop = [...s.chart.benchmark].sort((a, b) => b.share - a.share)[0]
+      return `图表：模型结构对比；本项目最高=${currentTop ? `${currentTop.model} ${(currentTop.share * 100).toFixed(0)}%` : '无'}；标杆最高=${benchmarkTop ? `${benchmarkTop.model} ${(benchmarkTop.share * 100).toFixed(0)}%` : '无'}；最大差异=${s.chart.topGap.model} ${(s.chart.topGap.gap * 100).toFixed(0)}个百分点`
+    }
+    if (s.chart.type === 'active_dist') {
+      const currentPeak = [...s.chart.buckets].sort((a, b) => b.current - a.current)[0]
+      const benchmarkPeak = [...s.chart.buckets].sort((a, b) => b.benchmark - a.benchmark)[0]
+      return `图表：活跃天数分布；本项目人数最多=${currentPeak?.range || '无'} ${currentPeak?.current || 0}人；标杆人数最多=${benchmarkPeak?.range || '无'} ${benchmarkPeak?.benchmark || 0}人；重度使用者占比=${(s.chart.powerShareCurrent * 100).toFixed(0)}%，标杆${(s.chart.powerShareBenchmark * 100).toFixed(0)}%`
+    }
+    if (s.chart.type === 'depth_trend') {
+      const latestIndex = s.chart.months.length - 1
+      const currentLatest = latestIndex >= 0 ? s.chart.currentPerCapita[latestIndex] || 0 : 0
+      const benchmarkLatest = latestIndex >= 0 ? s.chart.benchmarkPerCapita[latestIndex] || 0 : 0
+      const avg = (rows: number[]) => rows.length > 0 ? rows.reduce((sum, value) => sum + value, 0) / rows.length : 0
+      return `图表：近6月人均AI成本走势；本项目均值=${fmtWan(avg(s.chart.currentPerCapita))}，标杆均值=${fmtWan(avg(s.chart.benchmarkPerCapita))}；最新月本项目=${fmtWan(currentLatest)}，标杆=${fmtWan(benchmarkLatest)}`
+    }
+    if (s.chart.type === 'attrition_breakdown') {
+      const voluntary = s.chart.voluntary.reduce((sum, value) => sum + value, 0)
+      const involuntary = s.chart.involuntary.reduce((sum, value) => sum + value, 0)
+      return `图表：流失分解；总流失=${s.chart.totalExits}人；主动=${voluntary}人，被动=${involuntary}人；重度使用者流失=${s.chart.powerExits}人`
+    }
+    if (s.chart.type === 'org_compare') {
+      const biggest = [...s.chart.layers]
+        .map(layer => ({ ...layer, gap: Math.abs(layer.current - layer.benchmark) }))
+        .sort((a, b) => b.gap - a.gap)[0]
+      return `图表：主流角色人均AI成本对比；最大差异=${biggest ? `${biggest.name}，本项目${fmtWan(biggest.current)}，标杆${fmtWan(biggest.benchmark)}` : '无'}`
+    }
+    return '图表：数据维度不足'
+  }
+  const riskLabel = (severity: typeof ev.steps[number]['severity']) =>
+    severity === 'high' ? '高风险'
+    : severity === 'medium' ? '中风险'
+    : severity === 'low' ? '低风险' : '正常'
   const stepsText = ev.steps.map(s =>
-    `[${s.key}] ${s.title}｜系统预判严重度=${s.severity}｜事实：${s.facts.map(f => `${f.label}=${f.value}${f.benchmark ? `（${f.benchmark}）` : ''}`).join('；')}｜系统计算结论：${s.finding}`
+    `[${s.key}] ${s.title}｜系统风险等级=${riskLabel(s.severity)}｜事实：${s.facts.map(f => `${f.label}=${f.value}${f.benchmark ? `（${f.benchmark}）` : ''}`).join('；')}｜${chartText(s)}｜系统计算结论：${s.finding}`
   ).join('\n')
   return `目标项目：${ev.project.name}（${ev.project.type}，${ev.project.headcount}人，象限=${ev.project.quadrant}，人效=${ev.project.productivity.toFixed(2)}，AI投入强度=${(ev.project.ai_intensity * 100).toFixed(0)}%）
 对照标杆：${ev.benchmark ? `${ev.benchmark.name}（人效=${ev.benchmark.productivity.toFixed(2)}，AI投入强度=${(ev.benchmark.ai_intensity * 100).toFixed(0)}%）` : '无'}

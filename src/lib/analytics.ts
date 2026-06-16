@@ -368,10 +368,53 @@ export interface EvidenceStep {
   key: 'model' | 'people' | 'depth' | 'attrition' | 'org'
   title: string
   facts: { label: string; value: string; benchmark?: string }[]
+  chart?: AttributionChartData | null
   /** 系统计算的事实陈述（UI 标"系统计算"） */
   finding: string
   /** 预判严重度（AI 可覆写） */
   severity: 'high' | 'medium' | 'low' | 'none'
+}
+
+export type AttributionChartData =
+  | ModelChartData
+  | PeopleChartData
+  | DepthChartData
+  | AttritionChartData
+  | OrgChartData
+
+export interface ModelChartData {
+  type: 'model_compare'
+  current: { model: string; share: number }[]
+  benchmark: { model: string; share: number }[]
+  topGap: { model: string; gap: number }
+}
+
+export interface PeopleChartData {
+  type: 'active_dist'
+  buckets: { range: string; current: number; benchmark: number }[]
+  powerShareCurrent: number
+  powerShareBenchmark: number
+}
+
+export interface DepthChartData {
+  type: 'depth_trend'
+  months: string[]
+  currentPerCapita: number[]
+  benchmarkPerCapita: number[]
+}
+
+export interface AttritionChartData {
+  type: 'attrition_breakdown'
+  months: string[]
+  voluntary: number[]
+  involuntary: number[]
+  powerExits: number
+  totalExits: number
+}
+
+export interface OrgChartData {
+  type: 'org_compare'
+  layers: { name: string; current: number; benchmark: number }[]
 }
 
 export interface AttributionEvidence {
@@ -386,6 +429,114 @@ function fmtWan(v: number): string {
 
 function pct(v: number): string {
   return (v * 100).toFixed(0) + '%'
+}
+
+const ATTRIBUTION_MODELS = ['Claude Opus', 'Claude Sonnet', 'GPT', 'Cursor/IDE', 'Mivo', '其他']
+const ACTIVE_BUCKETS = [
+  { range: '0-5天', min: 0, max: 5 },
+  { range: '5-10天', min: 5, max: 10 },
+  { range: '10-15天', min: 10, max: 15 },
+  { range: '15-20天', min: 15, max: 20 },
+  { range: '20+天', min: 20, max: Infinity },
+]
+const ORG_MAIN_ROLES = ['管理', '技术研发', '产品', '设计', '运营', '美术']
+
+function buildModelChart(project: ProjectWithMetrics, benchmark: ProjectWithMetrics | null): ModelChartData {
+  const current = ATTRIBUTION_MODELS.map(model => ({ model, share: project.ai_model_mix?.[model] || 0 }))
+  const benchmarkRows = benchmark
+    ? ATTRIBUTION_MODELS.map(model => ({ model, share: benchmark.ai_model_mix?.[model] || 0 }))
+    : []
+  const topGap = ATTRIBUTION_MODELS
+    .map(model => ({
+      model,
+      gap: Math.abs((project.ai_model_mix?.[model] || 0) - (benchmark?.ai_model_mix?.[model] || 0)),
+    }))
+    .sort((a, b) => b.gap - a.gap)[0] || { model: '无', gap: 0 }
+  return { type: 'model_compare', current, benchmark: benchmarkRows, topGap }
+}
+
+function bucketActiveDays(rows: TalentRecord[]): { range: string; count: number }[] {
+  return ACTIVE_BUCKETS.map(bucket => ({
+    range: bucket.range,
+    count: rows.filter(row => row.active_days >= bucket.min && row.active_days < bucket.max).length,
+  }))
+}
+
+function buildPeopleChart(current: TalentRecord[], benchmark: TalentRecord[]): PeopleChartData {
+  const currentBuckets = bucketActiveDays(current)
+  const benchmarkBuckets = bucketActiveDays(benchmark)
+  return {
+    type: 'active_dist',
+    buckets: ACTIVE_BUCKETS.map((bucket, index) => ({
+      range: bucket.range,
+      current: currentBuckets[index]?.count || 0,
+      benchmark: benchmarkBuckets[index]?.count || 0,
+    })),
+    powerShareCurrent: current.length > 0 ? current.filter(row => row.tier === 'power').length / current.length : 0,
+    powerShareBenchmark: benchmark.length > 0 ? benchmark.filter(row => row.tier === 'power').length / benchmark.length : 0,
+  }
+}
+
+function buildDepthChart(
+  projectId: string,
+  benchmarkId: string | null,
+  trend: MonthlyRecord[]
+): DepthChartData | null {
+  const currentRows = trend
+    .filter(row => row.project_id === projectId)
+    .sort((a, b) => a.month.localeCompare(b.month))
+    .slice(-6)
+  if (currentRows.length === 0) return null
+  const months = currentRows.map(row => row.month)
+  const benchmarkRows = benchmarkId
+    ? trend.filter(row => row.project_id === benchmarkId).sort((a, b) => a.month.localeCompare(b.month))
+    : []
+  const benchmarkByMonth = new Map(benchmarkRows.map(row => [row.month, row]))
+  return {
+    type: 'depth_trend',
+    months,
+    currentPerCapita: currentRows.map(row => row.ai_cost / Math.max(row.headcount, 1)),
+    benchmarkPerCapita: months.map(month => {
+      const row = benchmarkByMonth.get(month)
+      return row ? row.ai_cost / Math.max(row.headcount, 1) : 0
+    }),
+  }
+}
+
+function buildAttritionChart(project: ProjectWithMetrics): AttritionChartData {
+  const turnover = project.recent_turnover
+  const voluntary = Math.max(0, turnover.voluntary_exits || 0)
+  const involuntary = Math.max(0, turnover.involuntary_exits || 0)
+  const known = voluntary + involuntary
+  const total = Math.max(turnover.total_exits || 0, known)
+  return {
+    type: 'attrition_breakdown',
+    months: ['累计'],
+    voluntary: [known > 0 ? voluntary : 0],
+    involuntary: [known > 0 ? involuntary : total],
+    powerExits: turnover.power_user_exits || 0,
+    totalExits: total,
+  }
+}
+
+function buildOrgChart(
+  projectId: string,
+  benchmarkId: string | null,
+  roleMatrix: RoleDeptCell[] | null
+): OrgChartData | null {
+  if (!roleMatrix || roleMatrix.length === 0) return null
+  const byProjectRole = new Map<string, RoleDeptCell>()
+  roleMatrix.forEach(cell => {
+    if (ORG_MAIN_ROLES.includes(cell.role)) byProjectRole.set(`${cell.project_id}:${cell.role}`, cell)
+  })
+  const layers = ORG_MAIN_ROLES
+    .map(role => ({
+      name: role,
+      current: byProjectRole.get(`${projectId}:${role}`)?.per_capita || 0,
+      benchmark: benchmarkId ? byProjectRole.get(`${benchmarkId}:${role}`)?.per_capita || 0 : 0,
+    }))
+    .filter(layer => layer.current > 0 || layer.benchmark > 0)
+  return layers.length > 0 ? { type: 'org_compare', layers } : null
 }
 
 export function buildAttributionEvidence(
@@ -404,6 +555,7 @@ export function buildAttributionEvidence(
     .sort((a, b) => b.productivity - a.productivity)[0] || null
 
   const pTalents = talents.filter(t => t.project_id === projectId)
+  const benchmarkTalents = benchmark ? talents.filter(t => t.project_id === benchmark.id) : []
   const powerUsers = pTalents.filter(t => t.tier === 'power')
   const t = getProductivityTrend(projectId, trend)
 
@@ -453,11 +605,17 @@ export function buildAttributionEvidence(
   const orgSeverity: EvidenceStep['severity'] =
     invertedCR.length > 0 && stay != null && stay < 60 ? 'high'
     : invertedCR.length > 0 || (stay != null && stay < 60) ? 'medium' : 'none'
+  const modelChart = buildModelChart(project, benchmark)
+  const peopleChart = buildPeopleChart(pTalents, benchmarkTalents)
+  const depthChart = buildDepthChart(projectId, benchmark?.id || null, trend)
+  const attritionChart = buildAttritionChart(project)
+  const orgChart = buildOrgChart(projectId, benchmark?.id || null, roleMatrix)
 
   const steps: EvidenceStep[] = [
     {
       key: 'model',
       title: '用对模型了吗',
+      chart: modelChart,
       facts: [
         { label: '高价模型(Opus)成本占比', value: pct(expShare), benchmark: bmExpShare != null ? `标杆 ${pct(bmExpShare)}` : undefined },
         { label: '主导岗位', value: domRole ? `${domRole[0]} ${domRole[1]}人` : '--' },
@@ -470,6 +628,7 @@ export function buildAttributionEvidence(
     {
       key: 'people',
       title: '用对人了吗',
+      chart: peopleChart,
       facts: [
         { label: '重度使用者', value: `${powerUsers.length} 人` },
         { label: '重度使用者 覆盖的岗位', value: [...powerRoles.keys()].join('、') || '无' },
@@ -483,6 +642,7 @@ export function buildAttributionEvidence(
     {
       key: 'depth',
       title: '用得够深吗',
+      chart: depthChart,
       facts: [
         { label: '人均 AI 成本', value: fmtWan(perCapita), benchmark: depthBenchNote },
         { label: '月均活跃天数', value: project.avg_active_days.toFixed(1) + ' 天' },
@@ -496,6 +656,7 @@ export function buildAttributionEvidence(
     {
       key: 'attrition',
       title: '人在流失吗',
+      chart: attritionChart,
       facts: [
         { label: '近期离职', value: `${to.total_exits} 人（被动 ${to.involuntary_exits}）` },
         { label: '重度使用者流失', value: `${to.power_user_exits} 人` },
@@ -508,6 +669,7 @@ export function buildAttributionEvidence(
     {
       key: 'org',
       title: '组织扛得住吗',
+      chart: orgChart,
       facts: [
         { label: '重度使用者中 CR<0.9（薪酬倒挂）', value: `${invertedCR.length} 人` },
         { label: '同期入职队列 留任意愿（团队级背景，非个人结论）', value: stay != null ? stay.toFixed(0) : '无调研数据' },

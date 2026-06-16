@@ -273,7 +273,7 @@ export default function OverviewPage() {
     <div className="w-full space-y-4 px-8 pb-44 pt-5">
       <header className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-zinc-50">投入产出全景</h1>
+          <h1 className="text-2xl font-semibold text-slate-900">投入产出全景</h1>
           <p className="mt-1 text-sm text-slate-600">总投入、利润与人效偏离的全局分布；AI 投入强度 = AI 成本 / 人力成本</p>
         </div>
         <div className="text-xs text-slate-500">{dataSource === 'uploaded' ? sourceName : '脱敏样本'} · 2026-04</div>

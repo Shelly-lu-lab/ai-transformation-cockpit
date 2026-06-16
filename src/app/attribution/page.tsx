@@ -2,17 +2,27 @@
 
 import dynamic from 'next/dynamic'
 import { Suspense, useEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAppData } from '@/lib/DataProvider'
-import { buildAttributionEvidence, AttributionEvidence } from '@/lib/analytics'
+import {
+  buildAttributionEvidence,
+  AttributionEvidence,
+  ModelChartData,
+  PeopleChartData,
+  DepthChartData,
+  AttritionChartData,
+  OrgChartData,
+} from '@/lib/analytics'
 import { AttributionResponse } from '@/lib/aiSchemas'
-import { formatProductivity, formatRatio } from '@/lib/format'
+import { formatProductivity, formatRatio, formatWan } from '@/lib/format'
 import {
   Card, SectionHeader, SeverityBadge, Severity,
   FactTag, JudgmentTag, ChapterTransition, Skeleton, CockpitTopbar, AiBriefing,
 } from '@/components/ui'
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false })
+const modelColors = ['#dc2626', '#0891b2', '#2563eb', '#7c3aed', '#d97706', '#64748b']
 
 const quadrantLabel: Record<string, string> = {
   amplifier: 'AI 已让人效变好',
@@ -32,24 +42,6 @@ function severityScore(severity: Severity) {
   if (severity === 'medium') return 62
   if (severity === 'low') return 35
   return 12
-}
-
-function MiniStepChart({ step }: { step: AttributionEvidence['steps'][number] }) {
-  const values = step.facts.map((fact, index) => ({
-    name: fact.label.slice(0, 4),
-    value: Math.max(1, Number((fact.value.match(/\d+(\.\d+)?/) || ['1'])[0])),
-    itemStyle: { color: ['#0891b2', '#2563eb', '#d97706'][index % 3] },
-  }))
-  const option = step.key === 'model'
-    ? { backgroundColor: 'transparent', series: [{ type: 'pie', radius: ['45%', '72%'], label: { show: false }, data: values }] }
-    : {
-        backgroundColor: 'transparent',
-        grid: { top: 8, right: 10, bottom: 18, left: 28 },
-        xAxis: { type: 'category', data: values.map(v => v.name), axisLabel: { color: '#64748b', fontSize: 10 }, axisLine: { show: false } },
-        yAxis: { type: 'value', axisLabel: { show: false }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.55)' } } },
-        series: [{ type: step.key === 'attrition' ? 'bar' : 'line', smooth: true, data: values, barWidth: '45%', lineStyle: { color: '#0891b2' }, itemStyle: { color: '#0891b2' }, areaStyle: step.key === 'depth' ? { color: 'rgba(8,145,178,0.10)' } : undefined }],
-      }
-  return <ReactECharts option={option} style={{ height: 96 }} />
 }
 
 function RootCauseRadar({ evidence, ai }: { evidence: AttributionEvidence | null; ai: AttributionResponse | null }) {
@@ -72,6 +64,165 @@ function RootCauseRadar({ evidence, ai }: { evidence: AttributionEvidence | null
     series: [{ type: 'radar', data: [{ value: scores.length === 5 ? scores : [0, 0, 0, 0, 0], areaStyle: { color: 'rgba(217,119,6,0.14)' }, lineStyle: { color: '#d97706' }, itemStyle: { color: '#d97706' } }] }],
   }
   return <ReactECharts option={option} style={{ height: 220 }} />
+}
+
+function ChartShell({ title, children, subtitle }: { title: string; children: ReactNode; subtitle?: string }) {
+  return (
+    <div className="rounded-xl border border-cyan-100/60 bg-slate-50/40 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-[13px] font-semibold text-slate-700">{title}</div>
+        {subtitle ? <div className="text-[11px] text-slate-500">{subtitle}</div> : null}
+      </div>
+      <div className="mt-2">{children}</div>
+    </div>
+  )
+}
+
+function ChartFallback() {
+  return (
+    <div className="rounded-xl border border-cyan-100/60 bg-slate-50/40 p-4 text-sm text-slate-500">
+      数据维度不足，请参考左侧系统计算事实
+    </div>
+  )
+}
+
+function ModelCompareChart({ data }: { data: ModelChartData }) {
+  if (data.current.length === 0) return <ChartFallback />
+  const models = data.current.map(row => row.model)
+  const option = {
+    backgroundColor: 'transparent',
+    color: modelColors,
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      backgroundColor: '#ffffff',
+      borderColor: '#cbd5e1',
+      textStyle: { color: '#1a2332' },
+      formatter: (params: { seriesName: string; value: number }[]) => params
+        .map(item => `${item.seriesName}: ${Math.round(item.value * 100)}%`)
+        .join('<br/>'),
+    },
+    legend: { top: 0, left: 'center', textStyle: { color: '#475569', fontSize: 10 }, itemWidth: 12, itemHeight: 8 },
+    grid: { top: 34, right: 10, bottom: 12, left: 52 },
+    xAxis: { type: 'value', max: 1, axisLabel: { color: '#64748b', formatter: (v: number) => `${Math.round(v * 100)}%` }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.55)' } } },
+    yAxis: { type: 'category', data: ['标杆', '本项目'], axisLabel: { color: '#475569', fontSize: 11 } },
+    series: models.map((model, index) => ({
+      name: model,
+      type: 'bar',
+      stack: 'cost',
+      barWidth: 22,
+      data: [data.benchmark.find(row => row.model === model)?.share || 0, data.current[index]?.share || 0],
+      itemStyle: { color: modelColors[index] },
+    })),
+  }
+  return (
+    <ChartShell title="本项目 vs 标杆 模型成本结构" subtitle={`最大差异：${data.topGap.model} ${Math.round(data.topGap.gap * 100)}pct`}>
+      <ReactECharts option={option} style={{ height: 180 }} />
+    </ChartShell>
+  )
+}
+
+function PeopleDistChart({ data }: { data: PeopleChartData }) {
+  if (data.buckets.length === 0) return <ChartFallback />
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      backgroundColor: '#ffffff',
+      borderColor: '#cbd5e1',
+      textStyle: { color: '#1a2332' },
+    },
+    legend: { top: 0, left: 'center', textStyle: { color: '#475569', fontSize: 11 }, itemWidth: 14, itemHeight: 8 },
+    grid: { top: 36, right: 12, bottom: 28, left: 40 },
+    xAxis: { type: 'category', data: data.buckets.map(row => row.range), axisLabel: { color: '#64748b', fontSize: 10 } },
+    yAxis: { type: 'value', name: '人数', nameTextStyle: { color: '#64748b', fontSize: 10 }, axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.55)' } } },
+    series: [
+      { name: '本项目', type: 'bar', data: data.buckets.map(row => row.current), itemStyle: { color: '#2563eb' }, barMaxWidth: 18 },
+      { name: '标杆', type: 'bar', data: data.buckets.map(row => row.benchmark), itemStyle: { color: '#0891b2' }, barMaxWidth: 18 },
+    ],
+  }
+  return (
+    <ChartShell title="活跃天数分布对比" subtitle={`重度使用者占比 ${formatRatio(data.powerShareCurrent)} vs 标杆 ${formatRatio(data.powerShareBenchmark)}`}>
+      <ReactECharts option={option} style={{ height: 180 }} />
+    </ChartShell>
+  )
+}
+
+function DepthTrendChart({ data }: { data: DepthChartData }) {
+  if (data.months.length === 0) return <ChartFallback />
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'axis', backgroundColor: '#ffffff', borderColor: '#cbd5e1', textStyle: { color: '#1a2332' } },
+    legend: { top: 0, left: 'center', textStyle: { color: '#475569', fontSize: 11 }, itemWidth: 16, itemHeight: 8 },
+    grid: { top: 36, right: 16, bottom: 28, left: 54 },
+    xAxis: { type: 'category', data: data.months, axisLabel: { color: '#64748b', fontSize: 10 } },
+    yAxis: { type: 'value', name: '元/人', nameTextStyle: { color: '#64748b', fontSize: 10 }, axisLabel: { color: '#64748b', formatter: (v: number) => formatWan(v) }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.55)' } } },
+    series: [
+      { name: '本项目', type: 'line', smooth: true, data: data.currentPerCapita, symbolSize: 6, lineStyle: { color: '#2563eb', width: 2 }, itemStyle: { color: '#2563eb' }, areaStyle: { color: 'rgba(37,99,235,0.08)' } },
+      { name: '标杆', type: 'line', smooth: true, data: data.benchmarkPerCapita, symbolSize: 6, lineStyle: { color: '#0891b2', width: 2 }, itemStyle: { color: '#0891b2' } },
+    ],
+  }
+  return (
+    <ChartShell title="人均 AI 成本走势对比（近 6 个月）">
+      <ReactECharts option={option} style={{ height: 180 }} />
+    </ChartShell>
+  )
+}
+
+function AttritionChart({ data }: { data: AttritionChartData }) {
+  if (data.months.length === 0) return <ChartFallback />
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: '#ffffff', borderColor: '#cbd5e1', textStyle: { color: '#1a2332' } },
+    legend: { top: 0, left: 'center', textStyle: { color: '#475569', fontSize: 11 }, itemWidth: 14, itemHeight: 8 },
+    grid: { top: 36, right: 12, bottom: 28, left: 40 },
+    xAxis: { type: 'category', data: data.months, axisLabel: { color: '#64748b', fontSize: 10 } },
+    yAxis: { type: 'value', name: '人数', nameTextStyle: { color: '#64748b', fontSize: 10 }, axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.55)' } } },
+    series: [
+      { name: '主动流失', type: 'bar', stack: 'exits', data: data.voluntary, itemStyle: { color: '#f87171' }, barMaxWidth: 34 },
+      { name: '被动流失', type: 'bar', stack: 'exits', data: data.involuntary, itemStyle: { color: '#dc2626' }, barMaxWidth: 34 },
+    ],
+  }
+  return (
+    <ChartShell title="流失人数分解" subtitle={`重度使用者流失 ${data.powerExits} / ${data.totalExits}`}>
+      <ReactECharts option={option} style={{ height: 180 }} />
+      {data.months.length === 1 ? (
+        <p className="mt-1 text-[11px] text-slate-500">缺少逐月流失明细，当前按累计数据展示。</p>
+      ) : null}
+    </ChartShell>
+  )
+}
+
+function OrgCompareChart({ data }: { data: OrgChartData }) {
+  if (data.layers.length === 0) return <ChartFallback />
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: '#ffffff', borderColor: '#cbd5e1', textStyle: { color: '#1a2332' } },
+    legend: { top: 0, left: 'center', textStyle: { color: '#475569', fontSize: 11 }, itemWidth: 14, itemHeight: 8 },
+    grid: { top: 36, right: 20, bottom: 12, left: 58 },
+    xAxis: { type: 'value', name: '元/人', nameTextStyle: { color: '#64748b', fontSize: 10 }, axisLabel: { color: '#64748b', formatter: (v: number) => formatWan(v) }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.55)' } } },
+    yAxis: { type: 'category', data: data.layers.map(row => row.name), axisLabel: { color: '#64748b', fontSize: 11 } },
+    series: [
+      { name: '本项目', type: 'bar', data: data.layers.map(row => row.current), itemStyle: { color: '#2563eb' }, barMaxWidth: 14 },
+      { name: '标杆', type: 'bar', data: data.layers.map(row => row.benchmark), itemStyle: { color: '#0891b2' }, barMaxWidth: 14 },
+    ],
+  }
+  return (
+    <ChartShell title="各主流角色人均 AI 成本 当前 vs 标杆">
+      <ReactECharts option={option} style={{ height: 240 }} />
+    </ChartShell>
+  )
+}
+
+function StepChart({ step }: { step: AttributionEvidence['steps'][number] }) {
+  if (!step.chart) return <ChartFallback />
+  if (step.key === 'model' && step.chart.type === 'model_compare') return <ModelCompareChart data={step.chart} />
+  if (step.key === 'people' && step.chart.type === 'active_dist') return <PeopleDistChart data={step.chart} />
+  if (step.key === 'depth' && step.chart.type === 'depth_trend') return <DepthTrendChart data={step.chart} />
+  if (step.key === 'attrition' && step.chart.type === 'attrition_breakdown') return <AttritionChart data={step.chart} />
+  if (step.key === 'org' && step.chart.type === 'org_compare') return <OrgCompareChart data={step.chart} />
+  return <ChartFallback />
 }
 
 function AttributionInner() {
@@ -188,7 +339,7 @@ function AttributionInner() {
         <Card className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-4">
             <div>
-              <div className="text-xl font-semibold text-zinc-50">{project.name}</div>
+              <div className="text-xl font-semibold text-slate-900">{project.name}</div>
               <div className="mt-0.5 text-xs text-slate-500">{project.type} · {project.headcount} 人</div>
             </div>
             <span className={`rounded-full border px-3 py-1 text-xs font-medium ${quadrantTone[project.quadrant]}`}>
@@ -257,7 +408,7 @@ function AttributionInner() {
                   </div>
                   <SeverityBadge severity={severity} />
                 </div>
-                <div className="grid grid-cols-[1fr_1.2fr] divide-x divide-zinc-800/80">
+                <div className="grid grid-cols-[1fr_1.2fr] divide-x divide-zinc-200">
                   {/* 左：事实 */}
                   <div className="space-y-2.5 px-5 py-4">
                     <FactTag />
@@ -270,7 +421,7 @@ function AttributionInner() {
                         </span>
                       </div>
                     ))}
-                    <MiniStepChart step={step} />
+                    <StepChart step={step} />
                     <p className="border-t border-zinc-200/60 pt-2 text-xs leading-5 text-slate-600">{step.finding}</p>
                   </div>
                   {/* 右：AI 研判 */}
