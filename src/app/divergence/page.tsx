@@ -28,6 +28,12 @@ const verdictMeta: Record<LeveragePoint['verdict'], { label: string; color: stri
 const models = ['Claude Opus', 'Claude Sonnet', 'GPT', 'Cursor/IDE', 'Mivo', '其他']
 const modelColors = ['#dc2626', '#0891b2', '#2563eb', '#7c3aed', '#d97706', '#64748b']
 
+function jitter(seed: string, range = 0.02) {
+  let hash = 0
+  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0
+  return ((hash % 1000) / 1000 - 0.5) * range
+}
+
 export default function DivergencePage() {
   const router = useRouter()
   const { projects, monthlyTrend, talentRisk, roleMatrix, isLoading } = useAppData()
@@ -90,7 +96,7 @@ export default function DivergencePage() {
     const max = Math.max(...cells.map(cell => cell.per_capita), 1)
     return {
       backgroundColor: 'transparent',
-      grid: { top: 28, right: 10, bottom: 70, left: 70 },
+      grid: { top: 28, right: 24, bottom: 90, left: 100 },
       tooltip: {
         backgroundColor: '#ffffff',
         borderColor: '#cbd5e1',
@@ -100,11 +106,34 @@ export default function DivergencePage() {
           return `<b>${departments[x]} · ${roles[y]}</b><br/>人均AI ${formatWan(value)}<br/>人数 ${headcount}<br/>活跃 ${active} 天<br/>${projectId}`
         },
       },
-      xAxis: { type: 'category', data: departments, axisLabel: { color: '#475569', rotate: 55, fontSize: 10 } },
-      yAxis: { type: 'category', data: roles, axisLabel: { color: '#475569', fontSize: 11 } },
-      visualMap: { min: 0, max, show: false, inRange: { color: ['#ffffff', '#164e63', '#0891b2', '#d97706'] } },
+      xAxis: {
+        type: 'category',
+        data: departments,
+        axisLabel: {
+          color: '#475569',
+          rotate: 35,
+          fontSize: 11,
+          interval: 0,
+          formatter: (value: string) => value.length > 6 ? `${value.slice(0, 6)}...` : value,
+        },
+      },
+      yAxis: { type: 'category', data: roles, axisLabel: { color: '#475569', fontSize: 12, interval: 0 } },
+      visualMap: {
+        min: 0,
+        max,
+        show: true,
+        orient: 'horizontal',
+        bottom: 4,
+        left: 'center',
+        itemWidth: 16,
+        itemHeight: 8,
+        textStyle: { color: '#475569', fontSize: 10 },
+        calculable: false,
+        inRange: { color: ['#f1f5f9', '#bae6fd', '#67e8f9', '#0e7490', '#b91c1c'] },
+      },
       series: [{
         type: 'heatmap',
+        itemStyle: { borderColor: '#ffffff', borderWidth: 1 },
         data: cells.flatMap(cell => {
           const x = departments.indexOf(projectName.get(cell.project_id) || cell.project_id)
           const y = roles.indexOf(cell.role)
@@ -130,10 +159,20 @@ export default function DivergencePage() {
     })
     return {
       backgroundColor: 'transparent',
-      grid: { top: 26, right: 12, bottom: 45, left: 50 },
+      grid: { top: 50, right: 12, bottom: 60, left: 50 },
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: '#ffffff', borderColor: '#cbd5e1', textStyle: { color: '#1a2332' } },
-      legend: { bottom: 0, textStyle: { color: '#475569', fontSize: 10 } },
-      xAxis: { type: 'category', data: roles, axisLabel: { color: '#475569', rotate: 30 } },
+      legend: { top: 0, left: 'center', type: 'scroll', textStyle: { color: '#475569', fontSize: 11 }, itemWidth: 14, itemHeight: 8, itemGap: 12 },
+      xAxis: {
+        type: 'category',
+        data: roles,
+        axisLabel: {
+          color: '#475569',
+          rotate: 0,
+          interval: 0,
+          fontSize: 11,
+          formatter: (value: string) => value.length > 4 ? value.slice(0, 4) : value,
+        },
+      },
       yAxis: { type: 'value', max: 1, axisLabel: { color: '#475569', formatter: (v: number) => `${Math.round(v * 100)}%` }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
       series: models.map((model, index) => ({
         name: model,
@@ -147,33 +186,69 @@ export default function DivergencePage() {
 
   const pricingOption = useMemo(() => {
     const rows = [
-      ...pricing.highPaidLowUse.slice(0, 80).map(talent => [talent.ai_cost_ratio, talent.cr_value, 18, talent.id, '高薪低用']),
-      ...pricing.highUseLowPaid.slice(0, 80).map(talent => [talent.ai_cost_ratio, talent.cr_value, 28, talent.id, '高用低薪']),
+      ...pricing.highPaidLowUse.slice(0, 80).map(talent => [talent.ai_cost_ratio, talent.cr_value + jitter(talent.id), 8, talent.id, '高薪低用']),
+      ...pricing.highUseLowPaid.slice(0, 80).map(talent => [talent.ai_cost_ratio, talent.cr_value + jitter(talent.id), 14, talent.id, '高用低薪']),
     ]
+    const xValues = rows.map(row => Number(row[0])).filter(value => Number.isFinite(value))
+    const useLogXAxis = xValues.length > 0 && Math.min(...xValues) > 0
     return {
       backgroundColor: 'transparent',
       grid: { top: 24, right: 24, bottom: 42, left: 50 },
-      tooltip: { backgroundColor: '#ffffff', borderColor: '#cbd5e1', textStyle: { color: '#1a2332' }, formatter: (params: { data: (number | string)[] }) => `<b>${params.data[3]}</b><br/>${params.data[4]}<br/>AI/薪酬 ${formatRatio(Number(params.data[0]))}<br/>CR ${Number(params.data[1]).toFixed(2)}` },
-      xAxis: { name: 'AI/薪酬', axisLabel: { color: '#475569', formatter: (v: number) => formatRatio(v) }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
+      tooltip: { backgroundColor: '#ffffff', borderColor: '#cbd5e1', textStyle: { color: '#1a2332' }, formatter: (params: { data: (number | string)[] }) => `<b>${params.data[3]}</b><br/>${params.data[4]}<br/>AI/薪酬 ${formatRatio(Number(params.data[0]))}<br/>薪酬位档 ${Number(params.data[1]).toFixed(2)}` },
+      xAxis: { type: useLogXAxis ? 'log' : 'value', logBase: 10, min: useLogXAxis ? 0.01 : undefined, name: 'AI/薪酬', axisLabel: { color: '#475569', formatter: (v: number) => formatRatio(v) }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
       yAxis: { name: '薪酬位档', min: 0.5, max: 1.7, axisLabel: { color: '#475569' }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
-      series: [{ type: 'scatter', data: rows, symbolSize: (value: number[]) => value[2], itemStyle: { color: (params: { data: (number | string)[] }) => params.data[4] === '高用低薪' ? '#dc2626' : '#d97706', opacity: 0.78 } }],
+      series: [{
+        type: 'scatter',
+        data: rows,
+        symbolSize: (value: number[]) => value[2],
+        itemStyle: { color: (params: { data: (number | string)[] }) => params.data[4] === '高用低薪' ? '#dc2626' : '#d97706', opacity: 0.5 },
+        markLine: {
+          silent: true,
+          symbol: 'none',
+          lineStyle: { color: '#94a3b8', type: 'dashed' },
+          label: { color: '#64748b', fontSize: 10 },
+          data: [{ yAxis: 1 }, { xAxis: 0.5 }, { xAxis: 1 }],
+        },
+      }],
     }
   }, [pricing])
 
-  const fragilityOption = useMemo(() => ({
-    backgroundColor: 'transparent',
-    grid: { top: 24, right: 24, bottom: 42, left: 50 },
-    tooltip: { backgroundColor: '#ffffff', borderColor: '#cbd5e1', textStyle: { color: '#1a2332' }, formatter: (params: { data: (number | string | boolean)[] }) => `<b>${params.data[3]}</b><br/>部门占比 ${formatRatio(Number(params.data[0]))}<br/>CR ${Number(params.data[1]).toFixed(2)}<br/>${projectName.get(String(params.data[4])) || params.data[4]}` },
-    xAxis: { name: '个人占部门AI比', max: 1, axisLabel: { color: '#475569', formatter: (v: number) => formatRatio(v) }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
-    yAxis: { name: '薪酬位档', min: 0.5, max: 1.7, axisLabel: { color: '#475569' }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
-    series: [{
-      type: 'scatter',
-      data: fragility.points.slice(0, 360).map(point => [point.deptShare, point.cr, point.tier === 'power' ? 18 : 11, point.id, point.project_id, point.fragile]),
-      symbolSize: (value: number[]) => value[2],
-      itemStyle: { color: (params: { data: (number | string | boolean)[] }) => params.data[5] ? '#dc2626' : '#0891b2', opacity: 0.72 },
-      markArea: { silent: true, itemStyle: { color: 'rgba(220,38,38,0.08)' }, data: [[{ xAxis: 0.1, yAxis: 0.5 }, { xAxis: 1, yAxis: 0.9 }]] },
-    }],
-  }), [fragility, projectName])
+  const fragilityOption = useMemo(() => {
+    const points = fragility.points.slice(0, 360).map(point => [point.deptShare, point.cr + jitter(point.id, 0.015), point.tier === 'power' ? 10 : 6, point.id, point.project_id, point.fragile, point.tier])
+    const powerPoints = points.filter(point => point[6] === 'power')
+    const regularPoints = points.filter(point => point[6] !== 'power')
+    return {
+      backgroundColor: 'transparent',
+      grid: { top: 40, right: 24, bottom: 42, left: 50 },
+      legend: { top: 0, left: 'center', textStyle: { color: '#475569', fontSize: 11 }, itemWidth: 14, itemHeight: 8 },
+      tooltip: { backgroundColor: '#ffffff', borderColor: '#cbd5e1', textStyle: { color: '#1a2332' }, formatter: (params: { data: (number | string | boolean)[] }) => `<b>${params.data[3]}</b><br/>部门占比 ${formatRatio(Number(params.data[0]))}<br/>薪酬位档 ${Number(params.data[1]).toFixed(2)}<br/>${projectName.get(String(params.data[4])) || params.data[4]}` },
+      xAxis: { name: '个人占部门AI比', max: 1, axisLabel: { color: '#475569', formatter: (v: number) => formatRatio(v) }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
+      yAxis: { name: '薪酬位档', min: 0.5, max: 1.7, axisLabel: { color: '#475569' }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
+      series: [
+        {
+          name: '普通使用者',
+          type: 'scatter',
+          symbol: 'circle',
+          data: regularPoints,
+          symbolSize: (value: number[]) => value[2],
+          itemStyle: { color: '#0891b2', opacity: 0.5 },
+          markArea: {
+            silent: true,
+            itemStyle: { color: 'rgba(220,38,38,0.14)', borderColor: '#dc2626', borderType: 'dashed', borderWidth: 1 },
+            data: [[{ xAxis: 0.1, yAxis: 0.5 }, { xAxis: 1, yAxis: 0.9 }]],
+          },
+        },
+        {
+          name: '重度使用者',
+          type: 'scatter',
+          symbol: 'triangle',
+          data: powerPoints,
+          symbolSize: (value: number[]) => value[2],
+          itemStyle: { color: '#dc2626', opacity: 0.5 },
+        },
+      ],
+    }
+  }, [fragility, projectName])
 
   return (
     <div className="w-full space-y-6 px-8 pb-24 pt-8">
@@ -189,7 +264,7 @@ export default function DivergencePage() {
       ) : (
         <>
           <section className="grid grid-cols-12 gap-5">
-            <Card className="col-span-5 p-5">
+            <Card className="col-span-7 p-5">
               <SectionHeader title={<TermTooltip term="leverage_matrix">项目分布矩阵</TermTooltip>} caption="X=AI投入强度，Y=人效，气泡=人数" right={<FactTag />} />
               <ReactECharts option={leverageOption} style={{ height: 420 }} onEvents={{ click: (params: { data?: (number | string)[] }) => {
                 const id = params.data?.[4]
@@ -197,27 +272,30 @@ export default function DivergencePage() {
               } }} />
               <Insight text={`已变好 ${leverage.counts.amplifier_confirmed} 个，待改善 ${leverage.counts.underperforming + leverage.counts.low_base} 个；先看高投入低人效气泡。`} />
             </Card>
-            <Card className="col-span-4 p-5">
-              <SectionHeader title="岗位×部门热力图" caption={<span>颜色=同岗位人均 AI 成本，重点看<TermTooltip term="role_gap">同岗位人效差距（倍）</TermTooltip></span>} right={<FactTag />} />
-              <ReactECharts option={heatmapOption} style={{ height: 420 }} />
-              <Insight text={topRoleCell ? `${projectName.get(topRoleCell.project_id) || topRoleCell.project_id} 的 ${topRoleCell.role} 人均 AI 成本最高，人数 ${topRoleCell.headcount}。` : '热力图暂无足够岗位数据。'} />
-            </Card>
-            <Card className="col-span-3 p-5">
-              <SectionHeader title="模型用错地方了" caption="角色维度模型成本结构" right={<FactTag />} />
-              <ReactECharts option={stackedOption} style={{ height: 420 }} />
+            <Card className="col-span-5 p-5">
+              <SectionHeader title="角色 × 模型成本结构" caption="X=角色，Y=各模型成本占比，颜色=模型类型" right={<FactTag />} />
+              <ReactECharts option={stackedOption} style={{ height: 460 }} />
               <Insight text={`${mismatch.filter(item => item.flag === 'mismatch_suspect').length} 个项目疑似模型用错地方，高价模型更多集中在非技术主导项目。`} />
+            </Card>
+          </section>
+
+          <section>
+            <Card className="p-5">
+              <SectionHeader title="岗位×部门 AI 投入热力图" caption={<span>颜色越深 = 同岗位人均 AI 投入越高，红色 = 异常高值；重点看<TermTooltip term="role_gap">同岗位人效差距（倍）</TermTooltip></span>} right={<FactTag />} />
+              <ReactECharts option={heatmapOption} style={{ height: 480 }} />
+              <Insight text={topRoleCell ? `${projectName.get(topRoleCell.project_id) || topRoleCell.project_id} 的 ${topRoleCell.role} 人均 AI 成本最高，人数 ${topRoleCell.headcount}。` : '热力图暂无足够岗位数据。'} />
             </Card>
           </section>
 
           <section className="grid grid-cols-2 gap-5">
             <Card className="p-5">
-              <SectionHeader title="薪酬偏低 Bubble" caption="高薪低用 / 高用低薪两类人才定价错配" right={<FactTag />} />
-              <ReactECharts option={pricingOption} style={{ height: 360 }} />
+              <SectionHeader title="AI 投入 × 薪酬位档分布" caption="X=AI成本/薪酬，Y=薪酬位档，气泡颜色=高薪低用或高用低薪" right={<FactTag />} />
+              <ReactECharts option={pricingOption} style={{ height: 380 }} />
               <Insight text={`高用低薪 ${pricing.highUseLowPaid.length} 人，高薪低用 ${pricing.highPaidLowUse.length} 人；先保护高用低薪人群。`} />
             </Card>
             <Card className="p-5">
-              <SectionHeader title="个人依赖 × 薪酬位档扫描" caption="右下角=高依赖且薪酬偏低" right={<FactTag />} />
-              <ReactECharts option={fragilityOption} style={{ height: 360 }} />
+              <SectionHeader title="员工部门依赖 × 薪酬位档分布" caption="X=个人占部门 AI 成本比例，Y=薪酬位档，形状=使用深度" right={<FactTag />} />
+              <ReactECharts option={fragilityOption} style={{ height: 380 }} />
               <Insight text={`${fragility.fragileCount} 名使用者落入右下警戒区：部门依赖高且薪酬位档偏低。`} />
             </Card>
           </section>
