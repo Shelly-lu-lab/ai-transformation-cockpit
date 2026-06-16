@@ -58,11 +58,11 @@ export function AiDock() {
 
   if (collapsed) {
     return (
-      <aside className="sticky top-[72px] h-[calc(100vh-72px)] w-10 shrink-0 py-6">
+      <aside className="sticky top-20 h-[calc(100vh-80px)] w-10 shrink-0 border-l border-zinc-200 bg-zinc-50 py-6">
         <button
           type="button"
           onClick={() => setCollapsed(false)}
-          className="relative flex h-full w-10 items-start justify-center rounded-xl border border-cyan-400/25 bg-cyan-400/10 pt-4 text-xs font-semibold tracking-[0.18em] text-cyan-700 shadow-lg shadow-cyan-950/30 transition-colors hover:border-cyan-300/50"
+          className="relative flex h-full w-10 items-start justify-center rounded-xl border border-zinc-200 bg-white pt-4 text-xs font-semibold tracking-[0.18em] text-blue-600 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50"
         >
           <span className="vertical-rl writing-mode-vertical">AI</span>
           {unread ? <span className="absolute right-1.5 top-2 h-2 w-2 rounded-full bg-red-400" /> : null}
@@ -72,48 +72,48 @@ export function AiDock() {
   }
 
   return (
-    <aside className="sticky top-[72px] h-[calc(100vh-72px)] w-[360px] shrink-0 py-6 pr-6">
-      <section className="flex h-full flex-col rounded-2xl border border-cyan-400/20 bg-[#0f172a]/90 shadow-2xl shadow-black/30 backdrop-blur-xl">
-        <header className="border-b border-white/10 px-4 py-3">
+    <aside className="sticky top-20 h-[calc(100vh-80px)] w-[360px] shrink-0 border-l border-zinc-200 bg-white py-6 pr-6">
+      <section className="flex h-full flex-col rounded-2xl border border-zinc-200 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
+        <header className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700">AI Copilot</div>
-              <div className="mt-1 rounded-full border border-zinc-200/80 bg-white/70 px-2.5 py-1 text-xs text-slate-600">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">AI Copilot</div>
+              <div className="mt-1 rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs text-zinc-700">
                 当前章节：{meta.label}
               </div>
             </div>
             <div className="flex gap-1">
-              <button type="button" onClick={clearHistory} className="rounded-md px-2 py-1 text-xs text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+              <button type="button" onClick={clearHistory} className="rounded-md px-2 py-1 text-xs text-zinc-500 hover:bg-white hover:text-zinc-900">
                 清空
               </button>
-              <button type="button" onClick={() => setCollapsed(true)} className="rounded-md px-2 py-1 text-xs text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+              <button type="button" onClick={() => setCollapsed(true)} className="rounded-md px-2 py-1 text-xs text-zinc-500 hover:bg-white hover:text-zinc-900">
                 折叠
               </button>
             </div>
           </div>
         </header>
 
-        <div className="flex-1 space-y-3 overflow-auto px-4 py-4">
+        <div className="flex-1 space-y-3 overflow-auto bg-white px-4 py-4">
           {messages.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-zinc-200/70 bg-slate-50/80 p-4 text-sm leading-6 text-slate-500">
+            <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 p-4 text-sm leading-6 text-zinc-500">
               对话历史会在本次会话内跨章节保留。系统会自动带入当前章节和项目上下文。
             </div>
           ) : messages.map(message => (
-            <div key={message.id} className={message.role === 'user' ? 'ml-8 rounded-xl bg-blue-500/15 px-3 py-2 text-sm text-blue-800' : 'mr-4 rounded-xl border border-zinc-200 bg-white/70 px-3 py-2 text-sm leading-6 text-slate-700'}>
-              <div className="mb-1 text-[10px] uppercase tracking-[0.14em] text-slate-500">
+            <div key={message.id} className={message.role === 'user' ? 'ml-8 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-900' : 'mr-4 rounded-lg border border-zinc-200 border-l-2 border-l-blue-500 bg-white px-3 py-2 text-sm leading-6 text-zinc-800'}>
+              <div className="mb-1 text-[10px] uppercase tracking-[0.14em] text-zinc-400">
                 {message.role === 'user' ? 'You' : 'AI'} · {message.chapter}
               </div>
               {message.role === 'ai' ? <MarkdownContent content={message.text} /> : message.text}
             </div>
           ))}
           {isLoading ? (
-            <div className="mr-4 rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-700">
+            <div className="mr-4 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-700">
               AI 正在结合当前章节上下文分析...
             </div>
           ) : null}
         </div>
 
-        <div className="border-t border-white/10 p-4">
+        <div className="border-t border-zinc-200 bg-zinc-50 p-4">
           <div className="mb-3 flex flex-wrap gap-2">
             {meta.questions.map(question => (
               <button
@@ -121,7 +121,7 @@ export function AiDock() {
                 type="button"
                 onClick={() => submit(question)}
                 disabled={isLoading}
-                className="rounded-full border border-zinc-200 bg-white/80 px-2.5 py-1 text-xs text-slate-600 transition-colors hover:border-cyan-400/50 hover:text-cyan-700 disabled:opacity-50"
+                className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs text-zinc-700 transition-colors hover:border-blue-400 hover:bg-blue-50 disabled:opacity-50"
               >
                 {question}
               </button>
@@ -132,12 +132,12 @@ export function AiDock() {
               value={input}
               onChange={event => setInput(event.target.value)}
               placeholder="向 AI 追问..."
-              className="h-10 min-w-0 flex-1 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-slate-900 outline-none placeholder:text-slate-500 focus:border-cyan-400"
+              className="h-10 min-w-0 flex-1 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-blue-500"
             />
             <button
               type="submit"
               disabled={isLoading || !input.trim()}
-              className="h-10 rounded-lg bg-cyan-500 px-4 text-sm font-medium text-slate-950 transition-colors hover:bg-cyan-300 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-slate-600"
+              className="h-10 rounded-lg bg-blue-600 px-4 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:text-zinc-500"
             >
               发送
             </button>

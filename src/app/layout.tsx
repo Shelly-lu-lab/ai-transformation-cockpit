@@ -31,7 +31,7 @@ export default function RootLayout({
           </div>
           <div className="min-h-screen min-w-[1280px] max-xl:hidden">
             <Nav />
-            <div className="mx-auto flex max-w-[1800px] items-start">
+            <div className="flex w-full items-start">
               <main className="min-w-0 flex-1">{children}</main>
               <Suspense fallback={null}>
                 <AiDock />

@@ -86,16 +86,15 @@ function DecisionInner() {
   }
 
   return (
-    <div className="mx-auto max-w-[1440px] space-y-6 px-6 pb-24 pt-8">
+    <div className="w-full space-y-6 px-8 pb-24 pt-8">
       <CockpitTopbar />
       <header>
-        <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-500">04 · 决策推演</div>
-        <h1 className="mt-2 text-[28px] font-semibold leading-tight text-zinc-50">钱和人，接下来怎么投？</h1>
+        <h1 className="text-[28px] font-semibold leading-tight text-[#1a2332]">钱和人，接下来怎么投？</h1>
         <p className="mt-1.5 text-sm text-slate-500">
           AI 基于诊断证据生成可执行方案——每张行动卡都有参照标杆与验证方式，触及关键人才时自动亮护栏。
         </p>
       </header>
-      <AiBriefing title="推演要闻" prompt="基于决策推演页，给出预算动作与人才护栏的一句经营提醒" />
+      <AiBriefing title="推演洞察" prompt="基于决策推演页，给出预算动作与人才护栏的一句经营提醒" />
 
       {/* 保人名单（事实层，始终在场） */}
       <Card className="border-amber-500/25 p-5">

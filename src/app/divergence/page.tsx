@@ -12,7 +12,7 @@ import {
   LeveragePoint,
 } from '@/lib/analytics'
 import { formatProductivity, formatRatio, formatWan } from '@/lib/format'
-import { Card, SectionHeader, FactTag, JudgmentTag, ChapterTransition, Skeleton, SimulatedTag, CockpitTopbar, AiBriefing } from '@/components/ui'
+import { Card, SectionHeader, FactTag, JudgmentTag, ChapterTransition, Skeleton, CockpitTopbar, AiBriefing } from '@/components/ui'
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false })
 
@@ -171,14 +171,13 @@ export default function DivergencePage() {
   }), [fragility, projectName])
 
   return (
-    <div className="mx-auto max-w-[1440px] space-y-6 px-6 pb-24 pt-8">
+    <div className="w-full space-y-6 px-8 pb-24 pt-8">
       <CockpitTopbar />
       <header>
-        <div className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-700">02 · 分化地图</div>
-        <h1 className="mt-2 text-[30px] font-semibold leading-tight text-zinc-50">钱花在哪成了，哪没成？</h1>
+        <h1 className="text-[30px] font-semibold leading-tight text-[#1a2332]">钱花在哪成了，哪没成？</h1>
         <p className="mt-1.5 text-sm text-slate-500">以五张交叉图定位 AI 投入、人效、岗位、模型与人才定价之间的分化。</p>
       </header>
-      <AiBriefing title="分化要闻" prompt="基于分化地图，指出最重要的业务单元分化信号" />
+      <AiBriefing title="分化洞察" prompt="基于分化地图，指出最重要的业务单元分化信号" />
 
       {isLoading || !leverage ? (
         <Skeleton className="h-[620px]" />
@@ -207,7 +206,7 @@ export default function DivergencePage() {
 
           <section className="grid grid-cols-2 gap-5">
             <Card className="p-5">
-              <SectionHeader title="薪酬偏低 Bubble" caption="高薪低用 / 高用低薪两类人才定价错配" right={<SimulatedTag />} />
+              <SectionHeader title="薪酬偏低 Bubble" caption="高薪低用 / 高用低薪两类人才定价错配" right={<FactTag />} />
               <ReactECharts option={pricingOption} style={{ height: 360 }} />
               <Insight text={`薪酬位档为${pricing.crSource === 'proxy' ? '代理' : '真实'}口径，高用低薪是预算调整时最需要保护的人群。`} />
             </Card>

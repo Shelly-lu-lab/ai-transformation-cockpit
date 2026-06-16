@@ -158,7 +158,7 @@ export function CockpitTopbar({ onRefresh }: { onRefresh?: () => void }) {
   )
 }
 
-export function AiBriefing({ title = '本期要闻', prompt }: { title?: string; prompt: string }) {
+export function AiBriefing({ title = '本期洞察', prompt }: { title?: string; prompt: string }) {
   const pathname = usePathname()
   const [briefing, setBriefing] = useState('')
   const [loading, setLoading] = useState(false)
@@ -185,17 +185,27 @@ export function AiBriefing({ title = '本期要闻', prompt }: { title?: string;
   }, [pathname, prompt])
 
   return (
-    <Card className="border-cyan-200 px-5 py-4 shadow-[0_0_24px_rgba(8,145,178,0.08)]">
-      <div className="flex items-start gap-3">
-        <span className="mt-1 h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-cyan-600 shadow-[0_0_14px_rgba(8,145,178,0.35)]" />
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700">{title}</span>
-            <JudgmentTag />
+    <Card className="border-l-4 border-l-blue-600 bg-gradient-to-r from-blue-50/70 via-white to-white px-7 py-6 shadow-[0_10px_32px_rgba(37,99,235,0.08)] transition-transform hover:-translate-y-px">
+      <div className="flex items-start gap-4">
+        <span className="relative grid h-8 w-8 shrink-0 place-items-center rounded-full bg-blue-600 text-xs font-bold text-white shadow-[0_0_18px_rgba(37,99,235,0.22)]">
+          <span className="absolute inset-0 animate-ping rounded-full bg-blue-400/20" />
+          <span className="relative">AI</span>
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-4">
+            <span className="text-lg font-semibold leading-none text-blue-900">{title}</span>
+            <span className="inline-flex shrink-0 items-center gap-2 rounded-full border border-blue-200 bg-blue-100/60 px-2.5 py-1 text-xs font-medium text-blue-700">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-600" />
+              AI 实时生成
+            </span>
           </div>
-          <p className="mt-2 text-[15px] leading-7 text-[#1a2332]">
-            {loading ? 'AI 正在生成本章要闻...' : briefing || 'AI 要闻暂不可用，系统计算图表不受影响。'}
-          </p>
+          {loading ? (
+            <Skeleton className="mt-4 h-8 w-4/5" />
+          ) : (
+            <p className="mt-3 text-xl font-medium leading-[1.5] text-zinc-900">
+              {briefing || 'AI 洞察暂不可用，系统计算图表不受影响。'}
+            </p>
+          )}
         </div>
       </div>
     </Card>

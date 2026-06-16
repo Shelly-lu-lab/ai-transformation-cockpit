@@ -159,12 +159,11 @@ function AttributionInner() {
   const project = evidence?.project
 
   return (
-    <div className="mx-auto max-w-[1440px] space-y-6 px-6 pb-24 pt-8">
+    <div className="w-full space-y-6 px-8 pb-24 pt-8">
       <CockpitTopbar />
       <header className="flex items-end justify-between">
         <div>
-          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-500">03 · 根因诊断</div>
-          <h1 className="mt-2 text-[28px] font-semibold leading-tight text-zinc-50">
+          <h1 className="text-[28px] font-semibold leading-tight text-[#1a2332]">
             为什么投了钱，人效没起来？
           </h1>
           <p className="mt-1.5 text-sm text-slate-500">系统沿五条因果线逐步排查，AI 交叉研判根因——每一步都有证据。</p>
@@ -181,7 +180,7 @@ function AttributionInner() {
           ))}
         </select>
       </header>
-      <AiBriefing title="诊断要闻" prompt="基于根因诊断页，给出当前项目最值得关注的一句根因要闻" />
+      <AiBriefing title="诊断洞察" prompt="基于根因诊断页，给出当前项目最值得关注的一句根因洞察" />
 
       {isLoading || !project ? (
         <Skeleton className="h-24" />

@@ -54,7 +54,7 @@ export default function Home() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-[1440px] items-center justify-center px-6 py-10">
+    <div className="flex min-h-[calc(100vh-5rem)] w-full items-center justify-center px-8 py-10">
       <section className="w-full max-w-[860px] text-center">
         <div className="mx-auto mb-6 grid h-12 w-12 place-items-center rounded-lg border border-blue-500/40 bg-blue-500/10 text-sm font-bold text-blue-700">
           AI

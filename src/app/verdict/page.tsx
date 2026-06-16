@@ -66,7 +66,6 @@ export default function VerdictPage() {
   const leverage = projects.length > 0 ? getLeverageMatrix(projects, monthlyTrend) : null
   const months = Array.from(new Set(monthlyTrend.map(record => record.month))).sort()
   const trendUpCount = projects.filter(project => getProductivityTrend(project.id, monthlyTrend).direction === 'up').length
-  const dataPeriod = months.length > 0 ? `${months[0]}–${months[months.length - 1]}` : '暂无趋势数据'
   const monthlyAgg = months.map(month => {
     const rows = monthlyTrend.filter(record => record.month === month)
     const labor = rows.reduce((sum, record) => sum + record.labor_cost, 0)
@@ -169,19 +168,18 @@ export default function VerdictPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projects.length])
 
-  if (error) return <div className="mx-auto max-w-[1440px] p-6 text-red-700">数据加载失败：{error}</div>
+  if (error) return <div className="w-full p-8 text-red-700">数据加载失败：{error}</div>
 
   return (
-    <div className="mx-auto max-w-[1440px] space-y-6 px-6 pb-24 pt-8">
+    <div className="w-full space-y-6 px-8 pb-24 pt-8">
       <CockpitTopbar onRefresh={() => runVerdict(true)} />
       <header>
-        <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-500">01 · 总体判断</div>
-        <h1 className="mt-2 text-[28px] font-semibold leading-tight text-zinc-50">
+        <h1 className="text-[28px] font-semibold leading-tight text-[#1a2332]">
           这一年的 AI 转型，值不值？
         </h1>
-        <p className="mt-1.5 text-sm text-slate-500">扫描全部 {projects.length} 个业务单元 · 数据时段 {dataPeriod}</p>
+        <p className="mt-1.5 text-sm text-slate-500">从投入、效率、产出与人才四条线判断 AI 转型是否真的带来经营改善。</p>
       </header>
-      <AiBriefing title="本期要闻" prompt="基于总体判断页数据，给经营层一句 AI 转型健康度要闻" />
+      <AiBriefing title="本期洞察" prompt="基于总体判断页数据，给经营层一句 AI 转型健康度洞察" />
 
       {/* 北极星指标带 */}
       {isLoading || !vi ? (

@@ -238,11 +238,11 @@ export default function SignalPage() {
   }
 
   if (error) {
-    return <div className="mx-auto max-w-[1440px] p-6 text-red-700">数据加载失败：{error}</div>
+    return <div className="w-full p-8 text-red-700">数据加载失败：{error}</div>
   }
 
   return (
-    <div className="mx-auto max-w-[1440px] space-y-4 px-6 pb-44 pt-5">
+    <div className="w-full space-y-4 px-8 pb-44 pt-5">
       <header className="flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-50">AI 价值信号</h1>
