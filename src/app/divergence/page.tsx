@@ -118,13 +118,19 @@ export default function DivergencePage() {
     const maxHC = Math.max(...leverage.points.map(point => point.headcount), 1)
     const seriesItems = [...groups.entries()]
     const areaVerdict = seriesItems.find(([verdict]) => verdict !== 'support')?.[0]
-    const productivityValues = leverage.points.filter(p => Number.isFinite(p.productivity) && p.productivity !== 0).map(p => p.productivity)
-    const yMin = productivityValues.length > 0 ? Math.min(...productivityValues) : 0
-    const yMax = productivityValues.length > 0 ? Math.max(...productivityValues) : 1
-    const yPad = Math.max((yMax - yMin) * 0.18, 0.5)
-    const intensityValues = leverage.points.filter(p => Number.isFinite(p.ai_intensity) && p.ai_intensity > 0).map(p => p.ai_intensity)
-    const xMin = intensityValues.length > 0 ? Math.max(Math.min(...intensityValues) * 0.5, 0.001) : 0.01
-    const xMax = intensityValues.length > 0 ? Math.max(...intensityValues) * 1.5 : 10
+    // 用 P10/P90 分位数防 outlier（如 labor=0 项目）拉伸坐标轴
+    const pnlPoints = leverage.points.filter(p => p.verdict !== 'support')
+    const yValues = pnlPoints.map(p => p.productivity).filter(v => Number.isFinite(v)).sort((a, b) => a - b)
+    const yP10 = yValues.length > 0 ? yValues[Math.max(0, Math.floor(yValues.length * 0.1))] : -1
+    const yP90 = yValues.length > 0 ? yValues[Math.min(yValues.length - 1, Math.ceil(yValues.length * 0.9))] : 5
+    const yRange = Math.max(yP90 - yP10, 1)
+    const yMin = Math.floor(yP10 - yRange * 0.35)
+    const yMax = Math.ceil(yP90 + yRange * 0.35)
+    const xValues = pnlPoints.map(p => p.ai_intensity).filter(v => Number.isFinite(v) && v > 0).sort((a, b) => a - b)
+    const xP10 = xValues.length > 0 ? xValues[Math.max(0, Math.floor(xValues.length * 0.1))] : 0.01
+    const xP90 = xValues.length > 0 ? xValues[Math.min(xValues.length - 1, Math.ceil(xValues.length * 0.9))] : 1
+    const xMin = Math.max(xP10 * 0.4, 0.005)
+    const xMax = xP90 * 2.5
     return {
       backgroundColor: 'transparent',
       grid: { top: 56, right: 40, bottom: 56, left: 64 },
@@ -146,7 +152,7 @@ export default function DivergencePage() {
         },
       },
       xAxis: { type: 'log', min: xMin, max: xMax, name: 'AI 投入强度', nameGap: 28, axisLabel: { color: '#475569', formatter: (v: number) => formatRatio(v) }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
-      yAxis: { name: '人效', min: yMin - yPad, max: yMax + yPad, nameGap: 36, axisLabel: { color: '#475569' }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
+      yAxis: { name: '人效', min: yMin, max: yMax, nameGap: 36, interval: Math.max(1, Math.ceil((yMax - yMin) / 6)), axisLabel: { color: '#475569', formatter: (v: number) => v.toFixed(0) }, splitLine: { lineStyle: { color: 'rgba(203,213,225,0.65)' } } },
       series: seriesItems.map(([verdict, points]) => ({
         name: `${verdictMeta[verdict].label} (${points.length})`,
         type: 'scatter',

@@ -175,7 +175,11 @@ export function AiBriefing({ title = '本期洞察', prompt }: { title?: string;
     })
       .then(res => res.json())
       .then(json => {
-        if (!cancelled) setBriefing((json.data?.answer || json.answer || '').replace(/\n/g, ' ').slice(0, 60))
+        if (!cancelled) {
+          const raw = (json.data?.answer || json.answer || '').replace(/\n/g, ' ').replace(/\s+/g, ' ').trim()
+          // 允许 ≤200 字完整呈现；prompt 已要求 ≤30 字，超长是 AI 越界，截断到 160 留缓冲
+          setBriefing(raw.length > 160 ? raw.slice(0, 160) + '…' : raw)
+        }
       })
       .catch(() => {
         if (!cancelled) setBriefing('')
